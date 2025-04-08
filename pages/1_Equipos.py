@@ -116,9 +116,10 @@ def get_db_connection():
 def init_db():
     conn = get_db_connection()
     cursor = conn.cursor()
-    # Se crea la tabla si no existe, conservando los datos ya almacenados
+    # Elimina la tabla anterior, si existe, para crear una nueva con el esquema correcto
+    cursor.execute("DROP TABLE IF EXISTS balanced_teams")
     cursor.execute("""
-        CREATE TABLE IF NOT EXISTS balanced_teams (
+        CREATE TABLE balanced_teams (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             radiant TEXT,
             dire TEXT,
@@ -128,6 +129,7 @@ def init_db():
     """)
     conn.commit()
     conn.close()
+
 
 def save_balanced_table(radiant, dire):
     """Guarda la tabla en la base de datos (se borra la anterior)."""
