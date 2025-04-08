@@ -353,7 +353,7 @@ def display_team(team_name, team_members):
             )
             if clicked:
                 st.session_state.selected_player = player
-                st.experimental_rerun()
+                
 
 # ===============================
 # Sección visible para todos (usuarios y admin)
