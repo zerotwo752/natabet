@@ -34,7 +34,7 @@ st.markdown(f"""
     .stApp {{
         background-image: url("data:image/png;base64,{pato_img_base64}");
         background-size: cover;
-        background-position: center 70%;  /* Ajusta el 70% para mover la imagen verticalmente */
+        background-position: center ;  /* Ajusta el 70% para mover la imagen verticalmente */
         background-attachment: fixed;
         background-color: #1a1a1a;
         color: #FFFFFF !important;
