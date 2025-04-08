@@ -31,31 +31,35 @@ pato_img_base64 = to_base64(pato_img_path)
 # ===============================
 st.markdown(f"""
     <style>
-    /* Fondo principal con imagen (se combina con el color de respaldo) */
     .stApp {{
         background-image: url("data:image/png;base64,{pato_img_base64}");
         background-size: cover;
-        background-position: center;
+        background-position: center 70%;  /* Ajusta el 70% para mover la imagen verticalmente */
         background-attachment: fixed;
-        background-color: #1a1a1a; /* En caso de que la imagen no cargue */
-        color: #FFFFFF !important; /* Texto en blanco para el contenido principal */
+        background-color: #1a1a1a;
+        color: #FFFFFF !important;
     }}
-    /* Forzar el texto y fondo del sidebar en blanco */
     [data-testid="stSidebar"], [data-testid="stSidebar"] * {{
         background-color: #1a1a1a !important;
         color: #FFFFFF !important;
     }}
-    /* Títulos y subtítulos */
     h1, h2, h3, h4, h5, h6 {{
         color: #FFD700 !important;
     }}
-    /* Botones */
     .stButton>button {{
         background-color: #1d1d45 !important;
         color: white !important;
         border: 1px solid #45aa44 !important;
     }}
-    /* Otros estilos (métricas, tarjetas, redes sociales, etc.) */
+    /* Regla para las tarjetas de jugadores */
+    .player-box {{
+        background-color: #1d1d45;
+        color: #FFFFFF;
+        padding: 10px;
+        border-radius: 5px;
+        margin-bottom: 5px;
+        font-size: 16px;
+    }}
     .mmr-difference {{
         font-size: 24px;
         color: #FFFFFF;
