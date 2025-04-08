@@ -338,8 +338,10 @@ def display_team(team_name, team_members):
         player_data = st.session_state.players[player]
         img_path = IMAGES_DIR / player_data["medal"]
         img_bytes = to_base64(img_path) if img_path.exists() else None
+        # Si el jugador está seleccionado, resaltamos con un borde dorado.
         is_selected = player == st.session_state.selected_player
         border_color = "#FFD700" if is_selected else "transparent"
+        
         col_a, col_b = st.columns([1, 4])
         with col_a:
             if img_bytes:
@@ -351,14 +353,17 @@ def display_team(team_name, team_members):
             else:
                 st.error(f"Imagen no encontrada: {player_data['medal']}")
         with col_b:
-            clicked = st.button(
-                f"{player} ({player_data['mmr']:,} MMR)",
-                key=f"btn_{player}",
-                help=f"Seleccionar {player}",
-                use_container_width=True
-            )
-            if clicked:
+            # Encapsulamos la información en un div con clase "player-box"
+            html_player = f"""
+            <div class="player-box">
+                <span>{player} ({player_data['mmr']:,} MMR)</span>
+            </div>
+            """
+            st.markdown(html_player, unsafe_allow_html=True)
+            # Botón para seleccionar al jugador
+            if st.button("Seleccionar", key=f"btn_{player}"):
                 st.session_state.selected_player = player
+
                 
 
 # ===============================
