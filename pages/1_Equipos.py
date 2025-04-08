@@ -32,7 +32,7 @@ st.markdown("""
     
     /* Mensajes de información */
     .stAlert {
-        background-color: #FFFFFF  !important;
+        background-color: #333333  !important;
     }
     
     /* Tarjetas de jugadores */
