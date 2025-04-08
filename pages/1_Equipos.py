@@ -2,11 +2,9 @@ import streamlit as st
 import random
 from pathlib import Path
 import base64
-import os
-import stat
 
 # ===============================
-# Función de conversión de imágenes a Base64
+# Función para convertir imágenes a Base64
 # ===============================
 def to_base64(img_path: Path) -> str:
     """Convierte una imagen local a Base64. Retorna cadena vacía si no existe."""
@@ -15,92 +13,48 @@ def to_base64(img_path: Path) -> str:
     return ""
 
 # ===============================
-# Estilos CSS globales
+# Estilos CSS globales y para el sidebar
 # ===============================
 st.markdown("""
     <style>
-    /* Fondo principal y texto general */
+    /* Fondo principal y texto */
     .stApp {
-        background-color: #1a1a1a;  /* Color oscuro personalizado */
-        color: #FFFFFF !important;  /* Texto blanco para el contenido principal */
+        background-color: #1a1a1a;  /* Fondo oscuro */
+        color: #FFFFFF !important;  /* Texto blanco */
     }
-
-    /* -- Ajuste ESENCIAL: letras del SIDEBAR en color blanco -- */
+    /* Forzar el texto y fondo del sidebar en blanco */
     [data-testid="stSidebar"], [data-testid="stSidebar"] * {
-        background-color: #1a1a1a  !important; /* Color de fondo sidebar */
-        color: #FFFFFF !important;            /* Texto blanco en todo el sidebar */
+        background-color: #1a1a1a  !important;
+        color: #FFFFFF !important;
     }
-
     /* Títulos y subtítulos */
     h1, h2, h3, h4, h5, h6 {
-        color: #FFD700 !important; /* Dorado para títulos */
+        color: #FFD700 !important; /* Dorado */
     }
-    
-    /* Botones principales */
+    /* Botones */
     .stButton>button {
         background-color: #1d1d45 !important;
         color: white !important;
         border: 1px solid #45aa44 !important;
     }
-    
-    /* Mensajes de información */
-    .stAlert {
-        background-color: #333333  !important;
-    }
-    
-    /* Tarjetas de jugadores */
-    .player-box {
-        background-color: #333333  !important;
-        border: 1px solid #45aa44 !important;
-    }
-    
-    /* Estilos para el botón (hover y transición) */
-    .stButton button {
-        transition: all 0.3s ease;
-        background-color: #1d1d45;
-        color: white;
-        border: none;
-        border-radius: 5px;
-        padding: 20px 50px;
-        font-size: 16px;
-        cursor: pointer;
-        transition: background-color 0.3s;
-    }
-    .stButton button:hover {
-        background-color: #45aa44;
-    }
-
-    /* Cuadro de la métrica */
-    div[data-testid="stMetric"] {
-        background: #f0f2f6;
-        border-radius: 10px;
-        padding: 10px;
-    }
-
-    /* Diferencia de MMR */
+    /* Otros estilos (métricas, tarjetas, redes sociales, etc.) */
     .mmr-difference {
         font-size: 24px;
         color: #FFFFFF;
         font-weight: bold;
         text-align: center;
     }
-
-    /* Título principal */
     .title {
         font-size: 32px;
         color: #FFD700;
         font-weight: bold;
         text-align: center;
     }
-
-    /* Títulos de los equipos */
     .team-title {
         font-size: 28px;
         color: #FFFFFF;
         font-weight: bold;
     }
-
-    /* Redes sociales */
     .social-icons {
         position: fixed;
         top: 60px;
@@ -121,68 +75,13 @@ st.markdown("""
     .social-icon:hover {
         transform: scale(1.1);
     }
-
-    @keyframes fadeIn {
-        from { opacity: 0; transform: translateX(-50%) translateY(10px); }
-        to { opacity: 1; transform: translateX(-50%) translateY(0); }
-    }
-
-    .player-button {
-        background: #1d1d45;
-        color: white;
-        border: none;
-        border-radius: 5px;
-        padding: 10px;
-        width: 100%;
-        text-align: left;
-        cursor: pointer;
-        font-size: 16px;
-        transition: all 0.3s ease;
-    }
-    .player-button:hover {
-        background: #45a4;
-    }
-
-    /* Vista de usuario */
-    .user-view {
-        background-color: #1e1e2d;
-        border-radius: 10px;
-        padding: 15px;
-        margin: 10px 0;
-    }
-    .user-team-title {
-        color: #FFD700;
-        font-size: 24px;
-        border-bottom: 2px solid #444;
-        padding-bottom: 5px;
-    }
-
-    /* Hover para tarjetas de jugador */
-    div[data-testid="stHorizontalBlock"]:hover {
-        background-color: rgba(255, 215, 0, 0.1);
-        transition: all 0.3s ease;
-    }
-
-    /* Mensaje centrado para usuarios */
-    .empty-teams-message {
-        text-align: center;
-        margin-top: 50px;
-        color: #FFFFFF;
-    }
-
-    /* Botones finales (hover y transición) */
-    .stButton button:hover {
-        transform: scale(1.02);
-    }
-
     </style>
 """, unsafe_allow_html=True)
 
 # ===============================
-# Definición de rutas globales
+# Rutas globales
 # ===============================
-BASE_DIR = Path(__file__).parent.parent  # Sube un nivel desde /pages
-
+BASE_DIR = Path(__file__).parent.parent  # Por ejemplo, sube un nivel desde /pages
 IMAGES_DIR = BASE_DIR / "imagenes"     # Ruta: web/imagenes
 SOCIAL_DIR = BASE_DIR / "social"       # Ruta: web/social
 YAPE_PATH = BASE_DIR / "yape"          # Ruta: web/yape
@@ -206,7 +105,7 @@ if 'selected_player' not in st.session_state:
     st.session_state.selected_player = None
 
 # ===============================
-# Función para buscar imagen de jugador
+# Función para buscar imagen de jugador (en YAPE)
 # ===============================
 def find_player_image(player_name: str) -> str:
     """
@@ -216,47 +115,43 @@ def find_player_image(player_name: str) -> str:
     """
     clean_name = ''.join(c if c.isalnum() else '_' for c in player_name.lower())
     for ext in ['.jpg', '.jpeg', '.png']:
-        img_path = Path(f"{YAPE_PATH}{clean_name}{ext}")
+        img_path = YAPE_PATH / f"{clean_name}{ext}"
         if img_path.exists():
             return to_base64(img_path)
-    # Retornar imagen default si no se encontró la del jugador
-    return to_base64(Path(f"{YAPE_PATH}default.jpg"))
+    return to_base64(YAPE_PATH / "default.jpg")
 
 # ===============================
-# Verificación de sesión del admin
+# Login y manejo de sesión de administrador
 # ===============================
-if 'is_admin' not in st.session_state:
-    st.session_state.is_admin = False  # Inicializar el estado
-
-# ===============================
-# Función de inicio de sesión para Administradores
-# ===============================
-admin_credentials = {'admin': 'password123'}  # Cambia esto por tus credenciales
+admin_credentials = {'admin': 'password123'}  # Cambia estas credenciales según lo requieras
 
 def show_login():
-    """Muestra el formulario de login solo si no está logueado"""
-    if not st.session_state.is_admin:
-        with st.expander("🔑 Acceso Administrador", expanded=False):
-            username = st.text_input("Usuario")
-            password = st.text_input("Contraseña", type="password")
-            if st.button("Ingresar"):
-                if username in admin_credentials and admin_credentials[username] == password:
-                    st.session_state.is_admin = True
-                    st.rerun()
-                else:
-                    st.error("Credenciales incorrectas")
+    """Muestra el formulario de login en el sidebar si el usuario no es admin."""
+    with st.expander("🔑 Acceso Administrador", expanded=False):
+        username = st.text_input("Usuario", key="login_username")
+        password = st.text_input("Contraseña", type="password", key="login_password")
+        if st.button("Ingresar", key="login_button"):
+            if username in admin_credentials and admin_credentials[username] == password:
+                st.session_state.is_admin = True
+                st.experimental_rerun()
+            else:
+                st.error("Credenciales incorrectas")
 
-# Mostrar el login en el sidebar para admins
+# Si no es admin, mostramos el login en el sidebar.
+if not st.session_state.is_admin:
+    with st.sidebar:
+        show_login()
+
+# Si es admin, mostramos controles adicionales en el sidebar.
 if st.session_state.is_admin:
-    st.sidebar.write(f"👑 Administrador conectado")
-    if st.sidebar.button("🔒 Cerrar sesión"):
-        st.session_state.is_admin = False
-        st.rerun()
-else:
-    show_login()  # Mostrar opción de login
+    with st.sidebar:
+        st.write("👑 Administrador conectado")
+        if st.button("🔒 Cerrar sesión"):
+            st.session_state.is_admin = False
+            st.experimental_rerun()
 
 # ===============================
-# Funciones principales de la aplicación
+# Funciones de la lógica del juego
 # ===============================
 def get_medal(mmr: int) -> str:
     """Determina la medalla basada en el MMR."""
@@ -290,19 +185,15 @@ def get_medal(mmr: int) -> str:
     else:
         return "inmortal_top1.png"
 
-def calculate_mmr(team):
-    return sum(player["mmr"] for player in team.values())
-
 def balanced_shuffle():
+    """Genera combinaciones balanceadas y actualiza st.session_state."""
     player_names = list(st.session_state.players.keys())
     if not player_names:
         st.error("¡No hay jugadores para balancear!")
         return
-    
     combo_list = []
     total_players = len(player_names)
-    radiant_size = (total_players + 1) // 2  # Ejemplo: 5 para 9 jugadores
-    
+    radiant_size = (total_players + 1) // 2
     for _ in range(200):
         random.shuffle(player_names)
         radiant = player_names[:radiant_size]
@@ -312,7 +203,6 @@ def balanced_shuffle():
             sum(st.session_state.players[p]["mmr"] for p in dire)
         )
         combo_list.append((radiant, dire, diff))
-    
     combo_list.sort(key=lambda x: x[2])
     st.session_state.combinations = combo_list[:10]
     st.session_state.current_combo = 0
@@ -349,13 +239,13 @@ whatsapp_img_base64 = to_base64(whatsapp_img_path)
 
 social_icons_html = f"""
 <div class="social-icons">
-    <a href="https://kick.com/yairlonelys " target="_blank">
+    <a href="https://kick.com/yairlonelys" target="_blank">
         <img src="data:image/png;base64,{kick_img_base64}" class="social-icon" width="45">
     </a>
-    <a href="https://x.com/YairLonelys " target="_blank" style="margin-left: 12px;">
+    <a href="https://x.com/YairLonelys" target="_blank" style="margin-left: 12px;">
         <img src="data:image/png;base64,{x_img_base64}" class="social-icon" width="45">
     </a>
-    <a href="https://www.tiktok.com/@yairlonelyss " target="_blank" style="margin-left: 12px;">
+    <a href="https://www.tiktok.com/@yairlonelyss" target="_blank" style="margin-left: 12px;">
         <img src="data:image/png;base64,{tiktok_img_base64}" class="social-icon" width="45">
     </a>
 </div>
@@ -370,7 +260,7 @@ whatsapp_html = f"""
     z-index: 1000;
     transition: transform 0.3s;
 ">
-    <a href="https://wa.me/qr/4FQFJOIBKQXFP1 " target="_blank">
+    <a href="https://wa.me/qr/4FQFJOIBKQXFP1" target="_blank">
         <img 
             src="data:image/png;base64,{whatsapp_img_base64}" 
             width="200"
@@ -388,21 +278,65 @@ whatsapp_html = f"""
 st.markdown(whatsapp_html, unsafe_allow_html=True)
 
 # ===============================
-# Layout principal
+# Vista principal
+# ===============================
+# Título general para ambos (admin y usuarios)
+with st.container():
+    st.markdown("<div class='title'>Dota 2 Ñatabet</div>", unsafe_allow_html=True)
+
+# Si el usuario es administrador, mostrar los controles en el sidebar para agregar y editar jugadores
+if st.session_state.is_admin:
+    with st.sidebar:
+        st.header(f"➕ Agregar Jugador ({len(st.session_state.players)}/10)")
+        name = st.text_input("Nombre", key="add_name")
+        mmr = st.number_input("MMR", min_value=0, step=100, key="add_mmr")
+        if st.button("Agregar", key="add_button"):
+            if name and mmr is not None:
+                st.session_state.players[name] = {
+                    "mmr": mmr,
+                    "medal": get_medal(mmr)
+                }
+                st.experimental_rerun()
+        st.divider()
+        st.header("🏷️ Lista de Jugadores")
+        if st.session_state.players:
+            for pname, data in st.session_state.players.items():
+                img_path = IMAGES_DIR / data["medal"]
+                img_bytes = to_base64(img_path) if img_path.exists() else None
+                if img_bytes:
+                    st.markdown(
+                        f"""<div style="display: flex; align-items: center; gap: 10px;">
+                            <img src="data:image/png;base64,{img_bytes}" width="30">
+                            <span>{pname} ({data['mmr']} MMR)</span>
+                        </div>""",
+                        unsafe_allow_html=True
+                    )
+                else:
+                    st.error(f"Medalla no encontrada: {data['medal']}")
+        else:
+            st.info("No hay jugadores aún.")
+        
+        st.divider()
+        if st.button(f"🔄 Shuffle Equipos ({len(st.session_state.players)}/10)", key="shuffle_button"):
+            balanced_shuffle()
+        
+        if st.button("🧨 Eliminar todos los jugadores", key="delete_all"):
+            if st.checkbox("⚠️ ¿Estás SEGURO?", key="confirm_delete"):
+                delete_all_players()
+
+# ===============================
+# Función para mostrar equipos
 # ===============================
 def display_team(team_name, team_members):
     total_mmr = sum(st.session_state.players[p]["mmr"] for p in team_members)
     with st.container():
         st.markdown(f"<div class='team-title'>{team_name} (MMR: {total_mmr:,})</div>", unsafe_allow_html=True)
-    
     for player in team_members:
         player_data = st.session_state.players[player]
         img_path = IMAGES_DIR / player_data["medal"]
         img_bytes = to_base64(img_path) if img_path.exists() else None
-        
         is_selected = player == st.session_state.selected_player
         border_color = "#FFD700" if is_selected else "transparent"
-        
         col_a, col_b = st.columns([1, 4])
         with col_a:
             if img_bytes:
@@ -413,7 +347,6 @@ def display_team(team_name, team_members):
                 )
             else:
                 st.error(f"Imagen no encontrada: {player_data['medal']}")
-        
         with col_b:
             clicked = st.button(
                 f"{player} ({player_data['mmr']:,} MMR)",
@@ -423,60 +356,15 @@ def display_team(team_name, team_members):
             )
             if clicked:
                 st.session_state.selected_player = player
-                st.rerun()
+                st.experimental_rerun()
 
-# Título principal
-with st.container():
-    st.markdown("<div class='title'>Dota 2 Ñatabet</div>", unsafe_allow_html=True)
-
-# Sidebar
-with st.sidebar:
-    st.header(f"➕ Agregar Jugador ({len(st.session_state.players)}/10)")
-    name = st.text_input("Nombre")
-    mmr = st.number_input("MMR", min_value=0, step=100)
-    
-    if st.button("Agregar"):
-        if name and mmr is not None:
-            st.session_state.players[name] = {
-                "mmr": mmr,
-                "medal": get_medal(mmr)
-            }
-            st.rerun()
-    
-    st.divider()
-    st.header("🏷️ Lista de Jugadores")
-    if st.session_state.players:
-        for pname, data in st.session_state.players.items():
-            img_path = IMAGES_DIR / data["medal"]
-            img_bytes = to_base64(img_path) if img_path.exists() else None
-            if img_bytes:
-                st.markdown(
-                    f"""<div style="display: flex; align-items: center; gap: 10px;">
-                        <img src="data:image/png;base64,{img_bytes}" width="30">
-                        <span>{pname} ({data['mmr']} MMR)</span>
-                    </div>""",
-                    unsafe_allow_html=True
-                )
-            else:
-                st.error(f"Medalla no encontrada: {data['medal']}")
-    else:
-        st.info("No hay jugadores aún.")
-    
-    st.divider()
-    if st.button(f"🔄 Shuffle Equipos ({len(st.session_state.players)}/10)"):
-        balanced_shuffle()
-    
-    if st.button("🧨 Eliminar todos los jugadores"):
-        if st.checkbox("⚠️ ¿Estás SEGURO?"):
-            delete_all_players()
-
-# Mostramos equipos en columnas
+# ===============================
+# Sección visible para todos (usuarios y admin)
+# ===============================
 col1, col2 = st.columns(2)
-
 with col1:
     if st.session_state.radiant:
         display_team("Radiant", st.session_state.radiant)
-
 with col2:
     if st.session_state.dire:
         display_team("Dire", st.session_state.dire)
@@ -489,30 +377,31 @@ if st.session_state.radiant and st.session_state.dire:
     with st.container():
         st.markdown(f"<div class='mmr-difference'>Diferencia de MMR: {diff:,}</div>", unsafe_allow_html=True)
 
-col_btn1, col_btn2, col_btn3 = st.columns(3)
-
-with col_btn1:
-    if st.button("🗑️ Quitar Jugador", disabled=not st.session_state.selected_player, key="remove_player", type="primary"):
-        if st.session_state.selected_player:
-            if st.session_state.selected_player in st.session_state.radiant:
-                st.session_state.radiant.remove(st.session_state.selected_player)
-            if st.session_state.selected_player in st.session_state.dire:
-                st.session_state.dire.remove(st.session_state.selected_player)
-            del st.session_state.players[st.session_state.selected_player]
-            st.session_state.selected_player = None
-            st.rerun()
-
-with col_btn2:
-    if st.button("🔄 Cambiar de Equipo", disabled=not st.session_state.selected_player, key="swap_team", type="primary"):
-        if st.session_state.selected_player:
-            if st.session_state.selected_player in st.session_state.radiant:
-                st.session_state.radiant.remove(st.session_state.selected_player)
-                st.session_state.dire.append(st.session_state.selected_player)
-            else:
-                st.session_state.dire.remove(st.session_state.selected_player)
-                st.session_state.radiant.append(st.session_state.selected_player)
-            st.rerun()
-
-with col_btn3:
-    if st.session_state.combinations:
-        st.caption(f"Combinación {st.session_state.current_combo + 1}/{len(st.session_state.combinations)}")
+# ===============================
+# Controles adicionales SOLO para el administrador (bajo la tabla)
+# ===============================
+if st.session_state.is_admin:
+    col_btn1, col_btn2, col_btn3 = st.columns(3)
+    with col_btn1:
+        if st.button("🗑️ Quitar Jugador", disabled=not st.session_state.selected_player, key="remove_player"):
+            if st.session_state.selected_player:
+                if st.session_state.selected_player in st.session_state.radiant:
+                    st.session_state.radiant.remove(st.session_state.selected_player)
+                if st.session_state.selected_player in st.session_state.dire:
+                    st.session_state.dire.remove(st.session_state.selected_player)
+                del st.session_state.players[st.session_state.selected_player]
+                st.session_state.selected_player = None
+                st.experimental_rerun()
+    with col_btn2:
+        if st.button("🔄 Cambiar de Equipo", disabled=not st.session_state.selected_player, key="swap_team"):
+            if st.session_state.selected_player:
+                if st.session_state.selected_player in st.session_state.radiant:
+                    st.session_state.radiant.remove(st.session_state.selected_player)
+                    st.session_state.dire.append(st.session_state.selected_player)
+                else:
+                    st.session_state.dire.remove(st.session_state.selected_player)
+                    st.session_state.radiant.append(st.session_state.selected_player)
+                st.experimental_rerun()
+    with col_btn3:
+        if st.session_state.combinations:
+            st.caption(f"Combinación {st.session_state.current_combo + 1}/{len(st.session_state.combinations)}")
