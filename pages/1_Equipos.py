@@ -293,7 +293,7 @@ if st.session_state.is_admin:
                     "mmr": mmr,
                     "medal": get_medal(mmr)
                 }
-                st.experimental_rerun()
+                
         st.divider()
         st.header("🏷️ Lista de Jugadores")
         if st.session_state.players:
