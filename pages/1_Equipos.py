@@ -27,7 +27,7 @@ st.markdown("""
     
     /* Sidebar */
     [data-testid="stSidebar"] {
-        background-color: #2d2d2d !important;
+        background-color: #FFFFFF !important;
     }
     
     /* Mensajes de información */
