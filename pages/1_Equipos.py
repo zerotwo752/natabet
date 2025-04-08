@@ -291,6 +291,13 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
+# Añade esto después del CSS
+components.html("""
+<script>
+document.documentElement.setAttribute('data-theme', 'dark');
+</script>
+""", height=0)
+
 
 
 # ===============================
