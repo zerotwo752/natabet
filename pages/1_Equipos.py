@@ -6,11 +6,13 @@ import os
 import stat
 
 # ===============================
-# Definición de rutas globales
+# Definición de rutas globales (CORREGIDO)
 # ===============================
-IMAGES_DIR = Path(__file__).parent / "imagenes"  # Ruta relativa
-SOCIAL_DIR = Path(__file__).parent / "social"
-YAPE_PATH = Path(__file__).parent / "yape"
+BASE_DIR = Path(__file__).parent.parent  # Sube un nivel desde /pages
+
+IMAGES_DIR = BASE_DIR / "imagenes"     # Ruta: web/imagenes
+SOCIAL_DIR = BASE_DIR / "social"       # Ruta: web/social
+YAPE_PATH = BASE_DIR / "yape"          # Ruta: web/yape
 
 # ===============================
 # Inicialización de estado (COMPLETO) - ¡COLÓCALO AQUÍ!
