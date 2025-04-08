@@ -13,58 +13,67 @@ def to_base64(img_path: Path) -> str:
     return ""
 
 # ===============================
-# Estilos CSS globales y para el sidebar
+# Rutas globales
 # ===============================
-st.markdown("""
+BASE_DIR = Path(__file__).parent.parent  # Por ejemplo, sube un nivel desde /pages
+IMAGES_DIR = BASE_DIR / "imagenes"        # Ruta: web/imagenes
+SOCIAL_DIR = BASE_DIR / "social"          # Ruta: web/social
+YAPE_PATH = BASE_DIR / "yape"             # Ruta: web/yape
+
+# ===============================
+# Definir y convertir la imagen de fondo (pato)
+# ===============================
+pato_img_path = SOCIAL_DIR / "pato.png"   # Asegúrate que "pato.png" esté en la carpeta "social"
+pato_img_base64 = to_base64(pato_img_path)
+
+# ===============================
+# Estilos CSS globales y para el sidebar (ahora se incluye el fondo)
+# ===============================
+st.markdown(f"""
     <style>
-    /* Fondo principal con imagen */
+    /* Fondo principal con imagen (se combina con el color de respaldo) */
     .stApp {{
         background-image: url("data:image/png;base64,{pato_img_base64}");
-        background-size: cover;          /* Escala la imagen para cubrir todo el fondo */
-        background-position: center;     /* Centra la imagen */
-        background-attachment: fixed;    /* Fija la imagen al fondo para que no se desplace */
-        /* También puedes mantener el color de fondo de respaldo por si la imagen no carga */
-        background-color: #1a1a1a; 
+        background-size: cover;
+        background-position: center;
+        background-attachment: fixed;
+        background-color: #1a1a1a; /* En caso de que la imagen no cargue */
+        color: #FFFFFF !important; /* Texto en blanco para el contenido principal */
     }}
-    /* Fondo principal y texto */
-    .stApp {
-        background-color: #1a1a1a;  /* Fondo oscuro */
-        color: #FFFFFF !important;  /* Texto blanco */
-    }
     /* Forzar el texto y fondo del sidebar en blanco */
-    [data-testid="stSidebar"], [data-testid="stSidebar"] * {
-        background-color: #1a1a1a  !important;
+    [data-testid="stSidebar"], [data-testid="stSidebar"] * {{
+        background-color: #1a1a1a !important;
         color: #FFFFFF !important;
-    }
+    }}
     /* Títulos y subtítulos */
-    h1, h2, h3, h4, h5, h6 {
-        color: #FFD700 !important; /* Dorado */
-    }
+    h1, h2, h3, h4, h5, h6 {{
+        color: #FFD700 !important;
+    }}
     /* Botones */
-    .stButton>button {
+    .stButton>button {{
         background-color: #1d1d45 !important;
         color: white !important;
         border: 1px solid #45aa44 !important;
-    }
+    }}
     /* Otros estilos (métricas, tarjetas, redes sociales, etc.) */
-    .mmr-difference {
+    .mmr-difference {{
         font-size: 24px;
         color: #FFFFFF;
         font-weight: bold;
         text-align: center;
-    }
-    .title {
+    }}
+    .title {{
         font-size: 32px;
         color: #FFD700;
         font-weight: bold;
         text-align: center;
-    }
-    .team-title {
+    }}
+    .team-title {{
         font-size: 28px;
         color: #FFFFFF;
         font-weight: bold;
-    }
-    .social-icons {
+    }}
+    .social-icons {{
         position: fixed;
         top: 60px;
         left: 50px;
@@ -74,32 +83,20 @@ st.markdown("""
         background-color: rgba(0, 0, 0, 0.5);
         border-radius: 10px;
         padding: 5px;
-    }
-    .social-icon {
+    }}
+    .social-icon {{
         width: 50px !important;
         height: auto;
         cursor: pointer;
         transition: transform 0.2s;
-    }
-    .social-icon:hover {
+    }}
+    .social-icon:hover {{
         transform: scale(1.1);
-    }
+    }}
     </style>
-""", unsafe_allow_html=True)
+    """, unsafe_allow_html=True)
 
 # ===============================
-# Rutas globales
-# ===============================
-BASE_DIR = Path(__file__).parent.parent  # Por ejemplo, sube un nivel desde /pages
-IMAGES_DIR = BASE_DIR / "imagenes"     # Ruta: web/imagenes
-SOCIAL_DIR = BASE_DIR / "social"       # Ruta: web/social
-YAPE_PATH = BASE_DIR / "yape"          # Ruta: web/yape
-
-# ===============================
-
-pato_img_path = SOCIAL_DIR / "pato.png"
-pato_img_base64 = to_base64(pato_img_path)
-
 # Inicialización de estado
 # ===============================
 if 'is_admin' not in st.session_state:
@@ -157,8 +154,6 @@ if st.session_state.get("is_admin", False):
     st.sidebar.write("👑 Administrador conectado")
     if st.sidebar.button("🔒 Cerrar sesión"):
         st.session_state.is_admin = False
-
-
 
 # ===============================
 # Funciones de la lógica del juego
@@ -290,11 +285,9 @@ st.markdown(whatsapp_html, unsafe_allow_html=True)
 # ===============================
 # Vista principal
 # ===============================
-# Título general para ambos (admin y usuarios)
 with st.container():
     st.markdown("<div class='title'>Dota 2 Ñatabet</div>", unsafe_allow_html=True)
 
-# Si el usuario es administrador, mostrar los controles en el sidebar para agregar y editar jugadores
 if st.session_state.is_admin:
     with st.sidebar:
         st.header(f"➕ Agregar Jugador ({len(st.session_state.players)}/10)")
