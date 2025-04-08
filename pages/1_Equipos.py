@@ -388,7 +388,7 @@ if st.session_state.is_admin:
                     st.session_state.dire.remove(st.session_state.selected_player)
                 del st.session_state.players[st.session_state.selected_player]
                 st.session_state.selected_player = None
-                st.experimental_rerun()
+                
     with col_btn2:
         if st.button("🔄 Cambiar de Equipo", disabled=not st.session_state.selected_player, key="swap_team"):
             if st.session_state.selected_player:
@@ -398,7 +398,7 @@ if st.session_state.is_admin:
                 else:
                     st.session_state.dire.remove(st.session_state.selected_player)
                     st.session_state.radiant.append(st.session_state.selected_player)
-                st.experimental_rerun()
+                
     with col_btn3:
         if st.session_state.combinations:
             st.caption(f"Combinación {st.session_state.current_combo + 1}/{len(st.session_state.combinations)}")
