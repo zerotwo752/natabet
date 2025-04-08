@@ -116,6 +116,7 @@ def get_db_connection():
 def init_db():
     conn = get_db_connection()
     cursor = conn.cursor()
+    # Se crea la tabla si no existe, conservando los datos ya almacenados
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS balanced_teams (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -132,6 +133,7 @@ def save_balanced_table(radiant, dire):
     """Guarda la tabla en la base de datos (se borra la anterior)."""
     conn = get_db_connection()
     cursor = conn.cursor()
+    # Se borra el balance existente (para que todos los admin trabajen sobre la misma tabla)
     cursor.execute("DELETE FROM balanced_teams")
     cursor.execute(
         "INSERT INTO balanced_teams (radiant, dire, players) VALUES (?, ?, ?)",
@@ -139,7 +141,6 @@ def save_balanced_table(radiant, dire):
     )
     conn.commit()
     conn.close()
-
 
 def load_balanced_table():
     """Carga la tabla y retorna (radiant, dire, players) o (None, None, None) si no existe."""
@@ -152,7 +153,6 @@ def load_balanced_table():
         return json.loads(row["radiant"]), json.loads(row["dire"]), json.loads(row["players"])
     else:
         return None, None, None
-
 
 # Inicializamos la BD
 init_db()
@@ -186,7 +186,6 @@ if not st.session_state.get("is_admin", False):
         if players is not None:
             st.session_state.players = players
 
-
 #############################################
 # Función para buscar imagen de jugador (en YAPE)
 #############################################
@@ -201,7 +200,11 @@ def find_player_image(player_name: str) -> str:
 #############################################
 # Login y manejo de sesión de administrador
 #############################################
-admin_credentials = {'admin': 'password123'}  # Ajusta las credenciales
+# Se agregan credenciales para varios administradores
+admin_credentials = {
+    'yair': 'yair123',
+    'fernando': 'fernando123'
+}
 
 def show_login():
     username = st.sidebar.text_input("Usuario", key="login_username")
@@ -275,7 +278,7 @@ def balanced_shuffle():
     st.session_state.combinations = combo_list[:10]
     st.session_state.current_combo = 0
     apply_combo()
-    # Guardamos el balance en la BD (solo el admin lo genera)
+    # Guardamos el balance en la BD (todos los admin trabajan sobre la misma tabla)
     save_balanced_table(st.session_state.radiant, st.session_state.dire)
     st.success(f"¡Equipos balanceados ({len(st.session_state.radiant)}v{len(st.session_state.dire)})!")
 
