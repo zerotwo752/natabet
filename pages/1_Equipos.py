@@ -127,26 +127,24 @@ admin_credentials = {'admin': 'password123'}  # Ajusta las credenciales
 
 def show_login():
     """Muestra el formulario de login en el sidebar para usuarios NO administradores."""
-    # Se colocan las entradas directamente en el sidebar (sin expander)
     username = st.sidebar.text_input("Usuario", key="login_username")
     password = st.sidebar.text_input("Contraseña", type="password", key="login_password")
     if st.sidebar.button("Ingresar", key="login_button"):
         if username in admin_credentials and admin_credentials[username] == password:
             st.session_state.is_admin = True
-            st.experimental_rerun()  # Forzar reejecución
         else:
             st.sidebar.error("Credenciales incorrectas")
 
-# Si el usuario NO es administrador, mostrar el login en el sidebar.
-if not st.session_state.is_admin:
+# Si no está logueado como admin, mostramos el login.
+if not st.session_state.get("is_admin", False):
     show_login()
 
-# Si el usuario es administrador, mostrar un mensaje de sesión iniciada y el botón de cerrar sesión.
-if st.session_state.is_admin:
+# Si es admin, mostramos un mensaje y la opción para cerrar sesión.
+if st.session_state.get("is_admin", False):
     st.sidebar.write("👑 Administrador conectado")
     if st.sidebar.button("🔒 Cerrar sesión"):
         st.session_state.is_admin = False
-        st.experimental_rerun()
+
 
 
 # ===============================
