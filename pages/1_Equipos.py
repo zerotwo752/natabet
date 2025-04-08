@@ -37,7 +37,7 @@ st.markdown("""
     
     /* Tarjetas de jugadores */
     .player-box {
-        background-color: #333333 !important;
+        background-color: #FFFFFF  !important;
         border: 1px solid #45aa44 !important;
     }
     
