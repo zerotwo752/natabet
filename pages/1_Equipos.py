@@ -2,39 +2,42 @@ import streamlit as st
 import random
 from pathlib import Path
 import base64
+import sqlite3
+import json
+from datetime import datetime
 
-# ===============================
+#############################################
 # Función para convertir imágenes a Base64
-# ===============================
+#############################################
 def to_base64(img_path: Path) -> str:
     """Convierte una imagen local a Base64. Retorna cadena vacía si no existe."""
     if img_path.exists():
         return base64.b64encode(img_path.read_bytes()).decode()
     return ""
 
-# ===============================
+#############################################
 # Rutas globales
-# ===============================
-BASE_DIR = Path(__file__).parent.parent  # Por ejemplo, sube un nivel desde /pages
+#############################################
+BASE_DIR = Path(__file__).parent.parent  # Sube un nivel desde /pages
 IMAGES_DIR = BASE_DIR / "imagenes"        # Ruta: web/imagenes
 SOCIAL_DIR = BASE_DIR / "social"          # Ruta: web/social
 YAPE_PATH = BASE_DIR / "yape"             # Ruta: web/yape
 
-# ===============================
+#############################################
 # Definir y convertir la imagen de fondo (pato)
-# ===============================
+#############################################
 pato_img_path = SOCIAL_DIR / "pato.png"   # Asegúrate que "pato.png" esté en la carpeta "social"
 pato_img_base64 = to_base64(pato_img_path)
 
-# ===============================
-# Estilos CSS globales y para el sidebar (ahora se incluye el fondo)
-# ===============================
+#############################################
+# Inyección de CSS global (incluye fondo, tarjetas, etc.)
+#############################################
 st.markdown(f"""
     <style>
     .stApp {{
         background-image: url("data:image/png;base64,{pato_img_base64}");
         background-size: cover;
-        background-position: center ;  /* Ajusta el 70% para mover la imagen verticalmente */
+        background-position: center 70%; /* Ajusta el valor para mover la imagen verticalmente */
         background-attachment: fixed;
         background-color: #1a1a1a;
         color: #FFFFFF !important;
@@ -100,9 +103,60 @@ st.markdown(f"""
     </style>
     """, unsafe_allow_html=True)
 
-# ===============================
+#############################################
+# Configuración de la Base de Datos (SQLite)
+#############################################
+DB_PATH = BASE_DIR / "db.sqlite3"
+
+def get_db_connection():
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
+    return conn
+
+def init_db():
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS balanced_teams (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            radiant TEXT,
+            dire TEXT,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
+    conn.commit()
+    conn.close()
+
+def save_balanced_table(radiant, dire):
+    """Guarda la tabla en la base de datos (se borra la anterior)."""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("DELETE FROM balanced_teams")
+    cursor.execute(
+        "INSERT INTO balanced_teams (radiant, dire) VALUES (?, ?)",
+        (json.dumps(radiant), json.dumps(dire))
+    )
+    conn.commit()
+    conn.close()
+
+def load_balanced_table():
+    """Carga la tabla y retorna (radiant, dire) o (None, None) si no existe."""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT radiant, dire FROM balanced_teams ORDER BY updated_at DESC LIMIT 1")
+    row = cursor.fetchone()
+    conn.close()
+    if row:
+        return json.loads(row["radiant"]), json.loads(row["dire"])
+    else:
+        return None, None
+
+# Inicializamos la BD
+init_db()
+
+#############################################
 # Inicialización de estado
-# ===============================
+#############################################
 if 'is_admin' not in st.session_state:
     st.session_state.is_admin = False
 if 'players' not in st.session_state:
@@ -118,15 +172,19 @@ if 'current_combo' not in st.session_state:
 if 'selected_player' not in st.session_state:
     st.session_state.selected_player = None
 
-# ===============================
+#############################################
+# Si el usuario NO es admin, cargar la tabla de la BD
+#############################################
+if not st.session_state.get("is_admin", False):
+    radiant, dire = load_balanced_table()
+    if radiant is not None and dire is not None:
+        st.session_state.radiant = radiant
+        st.session_state.dire = dire
+
+#############################################
 # Función para buscar imagen de jugador (en YAPE)
-# ===============================
+#############################################
 def find_player_image(player_name: str) -> str:
-    """
-    Busca la imagen del jugador en la carpeta YAPE.
-    Si existe una imagen cuyo nombre (limpio) coincide con el jugador, la retorna en Base64;
-    en caso contrario retorna la imagen 'default.jpg'.
-    """
     clean_name = ''.join(c if c.isalnum() else '_' for c in player_name.lower())
     for ext in ['.jpg', '.jpeg', '.png']:
         img_path = YAPE_PATH / f"{clean_name}{ext}"
@@ -134,13 +192,12 @@ def find_player_image(player_name: str) -> str:
             return to_base64(img_path)
     return to_base64(YAPE_PATH / "default.jpg")
 
-# ===============================
+#############################################
 # Login y manejo de sesión de administrador
-# ===============================
+#############################################
 admin_credentials = {'admin': 'password123'}  # Ajusta las credenciales
 
 def show_login():
-    """Muestra el formulario de login en el sidebar para usuarios NO administradores."""
     username = st.sidebar.text_input("Usuario", key="login_username")
     password = st.sidebar.text_input("Contraseña", type="password", key="login_password")
     if st.sidebar.button("Ingresar", key="login_button"):
@@ -149,21 +206,18 @@ def show_login():
         else:
             st.sidebar.error("Credenciales incorrectas")
 
-# Si no está logueado como admin, mostramos el login.
 if not st.session_state.get("is_admin", False):
     show_login()
 
-# Si es admin, mostramos un mensaje y la opción para cerrar sesión.
 if st.session_state.get("is_admin", False):
     st.sidebar.write("👑 Administrador conectado")
     if st.sidebar.button("🔒 Cerrar sesión"):
         st.session_state.is_admin = False
 
-# ===============================
+#############################################
 # Funciones de la lógica del juego
-# ===============================
+#############################################
 def get_medal(mmr: int) -> str:
-    """Determina la medalla basada en el MMR."""
     if mmr < 770:
         stars = min(5, 1 + mmr // 150)
         return f"heraldo{stars}.png"
@@ -195,7 +249,6 @@ def get_medal(mmr: int) -> str:
         return "inmortal_top1.png"
 
 def balanced_shuffle():
-    """Genera combinaciones balanceadas y actualiza st.session_state."""
     player_names = list(st.session_state.players.keys())
     if not player_names:
         st.error("¡No hay jugadores para balancear!")
@@ -216,6 +269,8 @@ def balanced_shuffle():
     st.session_state.combinations = combo_list[:10]
     st.session_state.current_combo = 0
     apply_combo()
+    # Guardamos el balance en la BD (solo el admin lo genera)
+    save_balanced_table(st.session_state.radiant, st.session_state.dire)
     st.success(f"¡Equipos balanceados ({len(st.session_state.radiant)}v{len(st.session_state.dire)})!")
 
 def apply_combo():
@@ -233,9 +288,9 @@ def delete_all_players():
     st.session_state.selected_player = None
     st.success("✅ Todos los jugadores eliminados.")
 
-# ===============================
+#############################################
 # Código para redes sociales
-# ===============================
+#############################################
 kick_img_path = SOCIAL_DIR / "kick.png"
 tiktok_img_path = SOCIAL_DIR / "tiktok.png"
 x_img_path = SOCIAL_DIR / "x.png"
@@ -286,12 +341,13 @@ whatsapp_html = f"""
 """
 st.markdown(whatsapp_html, unsafe_allow_html=True)
 
-# ===============================
+#############################################
 # Vista principal
-# ===============================
+#############################################
 with st.container():
     st.markdown("<div class='title'>Dota 2 Ñatabet</div>", unsafe_allow_html=True)
 
+# Controles de admin para agregar jugadores y acciones
 if st.session_state.is_admin:
     with st.sidebar:
         st.header(f"➕ Agregar Jugador ({len(st.session_state.players)}/10)")
@@ -331,9 +387,9 @@ if st.session_state.is_admin:
             if st.checkbox("⚠️ ¿Estás SEGURO?", key="confirm_delete"):
                 delete_all_players()
 
-# ===============================
+#############################################
 # Función para mostrar equipos
-# ===============================
+#############################################
 def display_team(team_name, team_members):
     total_mmr = sum(st.session_state.players[p]["mmr"] for p in team_members)
     with st.container():
@@ -342,7 +398,7 @@ def display_team(team_name, team_members):
         player_data = st.session_state.players[player]
         img_path = IMAGES_DIR / player_data["medal"]
         img_bytes = to_base64(img_path) if img_path.exists() else None
-        # Si el jugador está seleccionado, resaltamos con un borde dorado.
+        # Resaltamos con borde dorado si está seleccionado
         is_selected = player == st.session_state.selected_player
         border_color = "#FFD700" if is_selected else "transparent"
         
@@ -357,22 +413,21 @@ def display_team(team_name, team_members):
             else:
                 st.error(f"Imagen no encontrada: {player_data['medal']}")
         with col_b:
-            # Encapsulamos la información en un div con clase "player-box"
+            # Mostramos información del jugador en una tarjeta con clase "player-box"
             html_player = f"""
             <div class="player-box">
                 <span>{player} ({player_data['mmr']:,} MMR)</span>
             </div>
             """
             st.markdown(html_player, unsafe_allow_html=True)
-            # Botón para seleccionar al jugador
-            if st.button("Seleccionar", key=f"btn_{player}"):
-                st.session_state.selected_player = player
+            # Solo se muestra el botón "Seleccionar" si el usuario es admin
+            if st.session_state.get("is_admin", False):
+                if st.button("Seleccionar", key=f"btn_{player}"):
+                    st.session_state.selected_player = player
 
-                
-
-# ===============================
+#############################################
 # Sección visible para todos (usuarios y admin)
-# ===============================
+#############################################
 col1, col2 = st.columns(2)
 with col1:
     if st.session_state.radiant:
@@ -389,9 +444,9 @@ if st.session_state.radiant and st.session_state.dire:
     with st.container():
         st.markdown(f"<div class='mmr-difference'>Diferencia de MMR: {diff:,}</div>", unsafe_allow_html=True)
 
-# ===============================
-# Controles adicionales SOLO para el administrador (bajo la tabla)
-# ===============================
+#############################################
+# Controles adicionales SOLO para el admin (bajo la tabla)
+#############################################
 if st.session_state.is_admin:
     col_btn1, col_btn2, col_btn3 = st.columns(3)
     with col_btn1:
@@ -403,7 +458,6 @@ if st.session_state.is_admin:
                     st.session_state.dire.remove(st.session_state.selected_player)
                 del st.session_state.players[st.session_state.selected_player]
                 st.session_state.selected_player = None
-                
     with col_btn2:
         if st.button("🔄 Cambiar de Equipo", disabled=not st.session_state.selected_player, key="swap_team"):
             if st.session_state.selected_player:
@@ -413,7 +467,7 @@ if st.session_state.is_admin:
                 else:
                     st.session_state.dire.remove(st.session_state.selected_player)
                     st.session_state.radiant.append(st.session_state.selected_player)
-                
     with col_btn3:
         if st.session_state.combinations:
             st.caption(f"Combinación {st.session_state.current_combo + 1}/{len(st.session_state.combinations)}")
+
