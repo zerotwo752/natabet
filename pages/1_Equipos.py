@@ -180,7 +180,7 @@ if 'selected_player' not in st.session_state:
 #############################################
 # Si el usuario NO es admin, cargar la tabla de la BD
 #############################################
-if not st.session_state.get("is_admin", False):
+
     radiant, dire, players = load_balanced_table()
     if radiant is not None and dire is not None:
         st.session_state.radiant = radiant
