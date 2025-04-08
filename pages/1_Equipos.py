@@ -391,7 +391,7 @@ if st.session_state.is_admin:
 # Función para mostrar equipos
 #############################################
 def display_team(team_name, team_members):
-    total_mmr = sum(st.session_state.players[p]["mmr"] for p in team_members)
+    total_mmr = sum(st.session_state.players[p]["mmr"] for p in team_members if p in st.session_state.players)
     with st.container():
         st.markdown(f"<div class='team-title'>{team_name} (MMR: {total_mmr:,})</div>", unsafe_allow_html=True)
     for player in team_members:
