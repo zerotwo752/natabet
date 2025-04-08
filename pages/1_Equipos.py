@@ -159,7 +159,7 @@ def load_balanced_table():
 # Inicializamos la BD
 init_db()
 
-#############################################
+############################################
 # Inicialización de estado
 #############################################
 if 'is_admin' not in st.session_state:
@@ -181,12 +181,13 @@ if 'selected_player' not in st.session_state:
 # Si el usuario NO es admin, cargar la tabla de la BD
 #############################################
 
-    radiant, dire, players = load_balanced_table()
-    if radiant is not None and dire is not None:
-        st.session_state.radiant = radiant
-        st.session_state.dire = dire
-        if players is not None:
-            st.session_state.players = players
+radiant, dire, players = load_balanced_table()
+
+if radiant is not None and dire is not None:
+    st.session_state.radiant = radiant
+    st.session_state.dire = dire
+    st.session_state.players = players
+
 
 #############################################
 # Función para buscar imagen de jugador (en YAPE)
