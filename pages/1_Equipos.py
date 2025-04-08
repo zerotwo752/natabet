@@ -17,6 +17,15 @@ def to_base64(img_path: Path) -> str:
 # ===============================
 st.markdown("""
     <style>
+    /* Fondo principal con imagen */
+    .stApp {{
+        background-image: url("data:image/png;base64,{pato_img_base64}");
+        background-size: cover;          /* Escala la imagen para cubrir todo el fondo */
+        background-position: center;     /* Centra la imagen */
+        background-attachment: fixed;    /* Fija la imagen al fondo para que no se desplace */
+        /* También puedes mantener el color de fondo de respaldo por si la imagen no carga */
+        background-color: #1a1a1a; 
+    }}
     /* Fondo principal y texto */
     .stApp {
         background-color: #1a1a1a;  /* Fondo oscuro */
@@ -87,6 +96,10 @@ SOCIAL_DIR = BASE_DIR / "social"       # Ruta: web/social
 YAPE_PATH = BASE_DIR / "yape"          # Ruta: web/yape
 
 # ===============================
+
+pato_img_path = SOCIAL_DIR / "pato.png"
+pato_img_base64 = to_base64(pato_img_path)
+
 # Inicialización de estado
 # ===============================
 if 'is_admin' not in st.session_state:
