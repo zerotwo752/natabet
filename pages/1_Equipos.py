@@ -121,6 +121,7 @@ def init_db():
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             radiant TEXT,
             dire TEXT,
+            players TEXT,
             updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
     """)
@@ -133,23 +134,25 @@ def save_balanced_table(radiant, dire):
     cursor = conn.cursor()
     cursor.execute("DELETE FROM balanced_teams")
     cursor.execute(
-        "INSERT INTO balanced_teams (radiant, dire) VALUES (?, ?)",
-        (json.dumps(radiant), json.dumps(dire))
+        "INSERT INTO balanced_teams (radiant, dire, players) VALUES (?, ?, ?)",
+        (json.dumps(radiant), json.dumps(dire), json.dumps(st.session_state.players))
     )
     conn.commit()
     conn.close()
 
+
 def load_balanced_table():
-    """Carga la tabla y retorna (radiant, dire) o (None, None) si no existe."""
+    """Carga la tabla y retorna (radiant, dire, players) o (None, None, None) si no existe."""
     conn = get_db_connection()
     cursor = conn.cursor()
-    cursor.execute("SELECT radiant, dire FROM balanced_teams ORDER BY updated_at DESC LIMIT 1")
+    cursor.execute("SELECT radiant, dire, players FROM balanced_teams ORDER BY updated_at DESC LIMIT 1")
     row = cursor.fetchone()
     conn.close()
     if row:
-        return json.loads(row["radiant"]), json.loads(row["dire"])
+        return json.loads(row["radiant"]), json.loads(row["dire"]), json.loads(row["players"])
     else:
-        return None, None
+        return None, None, None
+
 
 # Inicializamos la BD
 init_db()
@@ -176,10 +179,13 @@ if 'selected_player' not in st.session_state:
 # Si el usuario NO es admin, cargar la tabla de la BD
 #############################################
 if not st.session_state.get("is_admin", False):
-    radiant, dire = load_balanced_table()
+    radiant, dire, players = load_balanced_table()
     if radiant is not None and dire is not None:
         st.session_state.radiant = radiant
         st.session_state.dire = dire
+        if players is not None:
+            st.session_state.players = players
+
 
 #############################################
 # Función para buscar imagen de jugador (en YAPE)
