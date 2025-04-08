@@ -2,9 +2,10 @@ import streamlit as st
 import random
 from pathlib import Path
 import base64
-import sqlite3
 import json
 from datetime import datetime
+import os
+import psycopg2
 
 #############################################
 # Función para convertir imágenes a Base64
@@ -102,29 +103,29 @@ st.markdown(f"""
     """, unsafe_allow_html=True)
 
 #############################################
-# Configuración de la Base de Datos (SQLite)
+# Configuración de la Base de Datos (PostgreSQL)
 #############################################
-DB_PATH = BASE_DIR / "db.sqlite3"
-
 def get_db_connection():
-    conn = sqlite3.connect(DB_PATH)
-    conn.row_factory = sqlite3.Row
+    DATABASE_URL = os.environ.get("DATABASE_URL")
+    conn = psycopg2.connect(DATABASE_URL)
+    conn.autocommit = True
     return conn
 
 def init_db():
     conn = get_db_connection()
     cursor = conn.cursor()
+    # Si deseas mantener los datos entre despliegues, comenta la siguiente línea
     cursor.execute("DROP TABLE IF EXISTS balanced_teams")
     cursor.execute("""
-        CREATE TABLE balanced_teams (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
+        CREATE TABLE IF NOT EXISTS balanced_teams (
+            id SERIAL PRIMARY KEY,
             radiant TEXT,
             dire TEXT,
             players TEXT,
             updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
     """)
-    conn.commit()
+    cursor.close()
     conn.close()
 
 def save_balanced_table(radiant, dire):
@@ -132,10 +133,10 @@ def save_balanced_table(radiant, dire):
     cursor = conn.cursor()
     cursor.execute("DELETE FROM balanced_teams")
     cursor.execute(
-        "INSERT INTO balanced_teams (radiant, dire, players) VALUES (?, ?, ?)",
+        "INSERT INTO balanced_teams (radiant, dire, players) VALUES (%s, %s, %s)",
         (json.dumps(radiant), json.dumps(dire), json.dumps(st.session_state.players))
     )
-    conn.commit()
+    cursor.close()
     conn.close()
 
 def load_balanced_table():
@@ -143,9 +144,10 @@ def load_balanced_table():
     cursor = conn.cursor()
     cursor.execute("SELECT radiant, dire, players FROM balanced_teams ORDER BY updated_at DESC LIMIT 1")
     row = cursor.fetchone()
+    cursor.close()
     conn.close()
     if row:
-        return json.loads(row["radiant"]), json.loads(row["dire"]), json.loads(row["players"])
+        return json.loads(row[0]), json.loads(row[1]), json.loads(row[2])
     else:
         return None, None, None
 
@@ -452,4 +454,5 @@ whatsapp_html = f"""
 </div>
 """
 st.markdown(whatsapp_html, unsafe_allow_html=True)
+
 
