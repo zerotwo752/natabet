@@ -5,6 +5,45 @@ import base64
 import os
 import stat
 
+st.markdown("""
+    <style>
+    /* Fondo principal y texto */
+    .stApp {
+        background-color: #1a1a1a;  /* Color oscuro personalizado */
+        color: #FFFFFF !important; /* Texto blanco */
+    }
+    
+    /* Títulos y subtítulos */
+    h1, h2, h3, h4, h5, h6 {
+        color: #FFD700 !important; /* Dorado para títulos */
+    }
+    
+    /* Botones */
+    .stButton>button {
+        background-color: #1d1d45 !important;
+        color: white !important;
+        border: 1px solid #45aa44 !important;
+    }
+    
+    /* Sidebar */
+    [data-testid="stSidebar"] {
+        background-color: #2d2d2d !important;
+    }
+    
+    /* Mensajes de información */
+    .stAlert {
+        background-color: #333333 !important;
+    }
+    
+    /* Tarjetas de jugadores */
+    .player-box {
+        background-color: #333333 !important;
+        border: 1px solid #45aa44 !important;
+    }
+    
+    </style>
+""", unsafe_allow_html=True)
+
 # ===============================
 # Definición de rutas globales (CORREGIDO)
 # ===============================
