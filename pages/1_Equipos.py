@@ -123,32 +123,31 @@ def find_player_image(player_name: str) -> str:
 # ===============================
 # Login y manejo de sesión de administrador
 # ===============================
-admin_credentials = {'admin': 'password123'}  # Cambia estas credenciales según lo requieras
+admin_credentials = {'admin': 'password123'}  # Ajusta las credenciales
 
 def show_login():
-    """Muestra el formulario de login en el sidebar si el usuario no es admin."""
-    with st.expander("🔑 Acceso Administrador", expanded=False):
-        username = st.text_input("Usuario", key="login_username")
-        password = st.text_input("Contraseña", type="password", key="login_password")
-        if st.button("Ingresar", key="login_button"):
-            if username in admin_credentials and admin_credentials[username] == password:
-                st.session_state.is_admin = True
-                st.experimental_rerun()
-            else:
-                st.error("Credenciales incorrectas")
+    """Muestra el formulario de login en el sidebar para usuarios NO administradores."""
+    # Se colocan las entradas directamente en el sidebar (sin expander)
+    username = st.sidebar.text_input("Usuario", key="login_username")
+    password = st.sidebar.text_input("Contraseña", type="password", key="login_password")
+    if st.sidebar.button("Ingresar", key="login_button"):
+        if username in admin_credentials and admin_credentials[username] == password:
+            st.session_state.is_admin = True
+            st.experimental_rerun()  # Forzar reejecución
+        else:
+            st.sidebar.error("Credenciales incorrectas")
 
-# Si no es admin, mostramos el login en el sidebar.
+# Si el usuario NO es administrador, mostrar el login en el sidebar.
 if not st.session_state.is_admin:
-    with st.sidebar:
-        show_login()
+    show_login()
 
-# Si es admin, mostramos controles adicionales en el sidebar.
+# Si el usuario es administrador, mostrar un mensaje de sesión iniciada y el botón de cerrar sesión.
 if st.session_state.is_admin:
-    with st.sidebar:
-        st.write("👑 Administrador conectado")
-        if st.button("🔒 Cerrar sesión"):
-            st.session_state.is_admin = False
-            st.experimental_rerun()
+    st.sidebar.write("👑 Administrador conectado")
+    if st.sidebar.button("🔒 Cerrar sesión"):
+        st.session_state.is_admin = False
+        st.experimental_rerun()
+
 
 # ===============================
 # Funciones de la lógica del juego
