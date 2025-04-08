@@ -53,7 +53,6 @@ st.markdown(f"""
         color: white !important;
         border: 1px solid #45aa44 !important;
     }}
-    /* Estilos para tarjetas y secciones */
     .player-box {{
         background-color: #1d1d45;
         color: #FFFFFF;
@@ -150,12 +149,12 @@ def load_balanced_table():
     else:
         return None, None, None
 
-# Inicializamos la BD (si es la primera vez)
+# Inicializamos la BD (solo la primera vez)
 init_db()
 
 ############################################
 # Inicialización de estado
-#############################################
+############################################
 if 'is_admin' not in st.session_state:
     st.session_state.is_admin = False
 if 'players' not in st.session_state:
@@ -181,6 +180,40 @@ if radiant is not None and dire is not None:
     st.session_state.players = players
 
 #############################################
+# Definición global de get_medal
+#############################################
+def get_medal(mmr: int) -> str:
+    if mmr < 770:
+        stars = min(5, 1 + mmr // 150)
+        return f"heraldo{stars}.png"
+    elif mmr < 1540:
+        stars = min(5, 1 + (mmr - 770) // 160)
+        return f"guardian{stars}.png"
+    elif mmr < 2310:
+        stars = min(5, 1 + (mmr - 1540) // 160)
+        return f"cruzado{stars}.png"
+    elif mmr < 3080:
+        stars = min(5, 1 + (mmr - 2310) // 150)
+        return f"arconte{stars}.png"
+    elif mmr < 3850:
+        stars = min(5, 1 + (mmr - 3080) // 150)
+        return f"leyenda{stars}.png"
+    elif mmr < 4620:
+        stars = min(5, 1 + (mmr - 3850) // 150)
+        return f"ancestro{stars}.png"
+    elif mmr < 5621:
+        stars = min(5, 1 + (mmr - 4620) // 200)
+        return f"divino{stars}.png"
+    elif mmr < 6300:
+        return "inmortal0.png"
+    elif mmr < 8500:
+        return "inmortal.png"
+    elif mmr < 12500:
+        return "inmortal_top.png"
+    else:
+        return "inmortal_top1.png"
+
+#############################################
 # Función para buscar imagen de jugador (en YAPE)
 #############################################
 def find_player_image(player_name: str) -> str:
@@ -192,8 +225,7 @@ def find_player_image(player_name: str) -> str:
     return to_base64(YAPE_PATH / "default.jpg")
 
 #############################################
-# Panel de administración en el Sidebar
-# (Esta sección es visible para quienes quieran loguearse como admin)
+# Panel de Administración en el Sidebar
 #############################################
 with st.sidebar.expander("ADMIN (LOGIN)"):
     admin_credentials = {
@@ -214,7 +246,9 @@ with st.sidebar.expander("ADMIN (LOGIN)"):
         if st.button("🔒 Cerrar sesión"):
             st.session_state.is_admin = False
 
-# Si eres admin se muestran los controles para agregar y editar la tabla
+#############################################
+# Controles solo para Administradores
+#############################################
 if st.session_state.is_admin:
     with st.sidebar:
         st.header(f"➕ Agregar Jugador ({len(st.session_state.players)}/10)")
@@ -246,36 +280,6 @@ if st.session_state.is_admin:
             st.info("No hay jugadores aún.")
         st.divider()
         if st.button(f"🔄 Shuffle Equipos ({len(st.session_state.players)}/10)", key="shuffle_button"):
-            def get_medal(mmr: int) -> str:
-                if mmr < 770:
-                    stars = min(5, 1 + mmr // 150)
-                    return f"heraldo{stars}.png"
-                elif mmr < 1540:
-                    stars = min(5, 1 + (mmr-770) // 160)
-                    return f"guardian{stars}.png"
-                elif mmr < 2310:
-                    stars = min(5, 1 + (mmr-1540) // 160)
-                    return f"cruzado{stars}.png"
-                elif mmr < 3080:
-                    stars = min(5, 1 + (mmr-2310) // 150)
-                    return f"arconte{stars}.png"
-                elif mmr < 3850:
-                    stars = min(5, 1 + (mmr-3080) // 150)
-                    return f"leyenda{stars}.png"
-                elif mmr < 4620:
-                    stars = min(5, 1 + (mmr-3850) // 150)
-                    return f"ancestro{stars}.png"
-                elif mmr < 5621:
-                    stars = min(5, 1 + (mmr-4620) // 200)
-                    return f"divino{stars}.png"
-                elif mmr < 6300:
-                    return "inmortal0.png"
-                elif mmr < 8500:
-                    return "inmortal.png"
-                elif mmr < 12500:
-                    return "inmortal_top.png"
-                else:
-                    return "inmortal_top1.png"
             def balanced_shuffle():
                 player_names = list(st.session_state.players.keys())
                 if not player_names:
@@ -289,7 +293,7 @@ if st.session_state.is_admin:
                     radiant = player_names[:radiant_size]
                     dire = player_names[radiant_size:]
                     diff = abs(
-                        sum(st.session_state.players[p]["mmr"] for p in radiant) - 
+                        sum(st.session_state.players[p]["mmr"] for p in radiant) -
                         sum(st.session_state.players[p]["mmr"] for p in dire)
                     )
                     combo_list.append((radiant, dire, diff))
@@ -315,7 +319,6 @@ if st.session_state.is_admin:
                 st.session_state.selected_player = None
                 st.success("✅ Todos los jugadores eliminados.")
         st.divider()
-        # Controles adicionales de edición de jugadores
         col_btn1, col_btn2, col_btn3 = st.columns(3)
         with col_btn1:
             if st.button("🗑️ Quitar Jugador", disabled=not st.session_state.selected_player, key="remove_player"):
@@ -347,7 +350,7 @@ def display_team(team_name, team_members):
     with st.container():
         st.markdown(f"<div class='team-title'>{team_name} (MMR: {total_mmr:,})</div>", unsafe_allow_html=True)
     for player in team_members:
-        if player not in st.session_state.players: 
+        if player not in st.session_state.players:
             continue
         player_data = st.session_state.players[player]
         img_path = IMAGES_DIR / player_data["medal"]
@@ -358,7 +361,7 @@ def display_team(team_name, team_members):
         with col_a:
             if img_bytes:
                 st.markdown(
-                    f"""<img src="data:image/png;base64,{img_bytes}" width="50" 
+                    f"""<img src="data:image/png;base64,{img_bytes}" width="50"
                         style="border: 2px solid {border_color}; border-radius: 50%;">""",
                     unsafe_allow_html=True
                 )
@@ -371,18 +374,16 @@ def display_team(team_name, team_members):
             </div>
             """
             st.markdown(html_player, unsafe_allow_html=True)
-            # El botón "Seleccionar" aparece solo para admin
             if st.session_state.is_admin:
                 if st.button("Seleccionar", key=f"btn_{player}"):
                     st.session_state.selected_player = player
 
 #############################################
-# Vista principal (para todos los usuarios)
+# Vista principal (para TODOS los usuarios)
 #############################################
 with st.container():
     st.markdown("<div class='title'>Dota 2 Ñatabet</div>", unsafe_allow_html=True)
 
-# Mostramos la tabla (equipos balanceados) para todos
 col1, col2 = st.columns(2)
 with col1:
     if st.session_state.radiant:
@@ -393,14 +394,14 @@ with col2:
 
 if st.session_state.radiant and st.session_state.dire:
     diff = abs(
-        sum(st.session_state.players[p]["mmr"] for p in st.session_state.radiant) - 
+        sum(st.session_state.players[p]["mmr"] for p in st.session_state.radiant) -
         sum(st.session_state.players[p]["mmr"] for p in st.session_state.dire)
     )
     with st.container():
         st.markdown(f"<div class='mmr-difference'>Diferencia de MMR: {diff:,}</div>", unsafe_allow_html=True)
 
 #############################################
-# Código para redes sociales (siempre visible)
+# Código para redes sociales (siempre visibles)
 #############################################
 kick_img_path = SOCIAL_DIR / "kick.png"
 tiktok_img_path = SOCIAL_DIR / "tiktok.png"
@@ -451,5 +452,4 @@ whatsapp_html = f"""
 </div>
 """
 st.markdown(whatsapp_html, unsafe_allow_html=True)
-
 
