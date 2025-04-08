@@ -40,7 +40,7 @@ st.markdown("""
     /* Otros estilos (métricas, tarjetas, redes sociales, etc.) */
     .mmr-difference {
         font-size: 24px;
-        color: #010341;
+        color: #FFFFFF;
         font-weight: bold;
         text-align: center;
     }
