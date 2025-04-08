@@ -8,9 +8,9 @@ import stat
 # ===============================
 # Definición de rutas globales
 # ===============================
-IMAGES_DIR = Path("E:/web/imagenes")
-SOCIAL_DIR = Path("E:/web/social")
-YAPE_PATH = "E:/web/yape/"
+IMAGES_DIR = Path(__file__).parent / "imagenes"  # Ruta relativa
+SOCIAL_DIR = Path(__file__).parent / "social"
+YAPE_PATH = Path(__file__).parent / "yape"
 
 # ===============================
 # Inicialización de estado (COMPLETO) - ¡COLÓCALO AQUÍ!
