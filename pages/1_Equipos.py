@@ -32,12 +32,12 @@ st.markdown("""
     
     /* Mensajes de información */
     .stAlert {
-        background-color: #333333 !important;
+        background-color: #FFFFFF  !important;
     }
     
     /* Tarjetas de jugadores */
     .player-box {
-        background-color: #FFFFFF  !important;
+        background-color: #333333  !important;
         border: 1px solid #45aa44 !important;
     }
     
