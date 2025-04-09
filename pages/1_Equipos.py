@@ -125,30 +125,6 @@ st.markdown(f"""
         transform: scale(1.1);
     }}
 
-    /* Estilos para tooltip */
-    .tooltip {{
-        position: relative;
-        display: inline-block;
-    }}
-    .tooltip .tooltiptext {{
-        visibility: hidden;
-        width: auto;
-        background-color: rgba(0,0,0,0.8);
-        padding: 5px;
-        border-radius: 6px;
-        position: absolute;
-        z-index: 1;
-        bottom: 125%;
-        left: 50%;
-        transform: translateX(-50%);
-        opacity: 0;
-        transition: opacity 0.3s;
-    }}
-    .tooltip:hover .tooltiptext {{
-        visibility: visible;
-        opacity: 1;
-    }}
-
     /* Personalización de scrollbars para navegadores Webkit */
     ::-webkit-scrollbar {{
         width: 20px;
@@ -291,7 +267,7 @@ def get_medal(mmr: int) -> str:
 # Función para buscar imagen de jugador (en YAPE)
 #############################################
 def find_player_image(player_name: str) -> str:
-    # Nombre limpio basado en el nombre del jugador
+    # Construye un nombre de archivo limpio basado en el nombre del jugador
     clean_name = ''.join(c if c.isalnum() else '_' for c in player_name.lower())
     for ext in ['.jpg', '.jpeg', '.png']:
         img_path = YAPE_PATH / f"{clean_name}{ext}"
@@ -355,7 +331,7 @@ if st.session_state.is_admin:
         else:
             st.info("No hay jugadores aún.")
         st.divider()
-        # Asignar Héroe a Jugador (se actualiza la base de datos al asignar)
+        # Asignar Héroe
         st.header("Asignar Héroe a Jugador")
         if st.session_state.players:
             selected_player_hero = st.selectbox("Seleccionar Jugador", list(st.session_state.players.keys()), key="hero_player")
@@ -364,8 +340,6 @@ if st.session_state.is_admin:
                 if hero_option != "Selecciona Hero":
                     st.session_state.players[selected_player_hero]["hero"] = hero_option
                     st.success(f"Héroe asignado a {selected_player_hero}")
-                    # Se actualiza la base de datos para que los usuarios vean el cambio en tiempo real
-                    save_balanced_table(st.session_state.radiant, st.session_state.dire)
                 else:
                     st.error("Selecciona un héroe válido")
         else:
@@ -573,9 +547,9 @@ def display_team(team_name, team_members):
         player_data = st.session_state.players[player]
         medal_img_path = IMAGES_DIR / player_data["medal"]
         medal_img = to_base64(medal_img_path) if medal_img_path.exists() else ""
-        # Obtener la imagen del jugador desde la carpeta "yape" o usar la default
+        # Obtener la imagen del jugador desde la carpeta "yape"
         tooltip_img = find_player_image(player)
-        tooltip_html = f"""<div class="tooltiptext"><img src="data:image/png;base64,{tooltip_img}" style="width:200px;"></div>"""
+        tooltip_html = f"""<span class="tooltiptext"><img src="data:image/png;base64,{tooltip_img}" style="width:200px;"></span>"""
         # Información del héroe
         if player_data.get("hero") and player_data.get("hero") != "Selecciona Hero":
             hero_img_path = SOCIAL_DIR / f"{player_data['hero']}.png"
