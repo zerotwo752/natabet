@@ -360,112 +360,71 @@ def display_team(team_name, team_members):
         for p in team_members
         if p in st.session_state.players
     )
-    # determina alineación
+    # ¿Radiant a la izquierda, Dire a la derecha?
     is_radiant = team_name.lower() == "radiant"
     margin_style = (
-        "margin:15px  auto 15px 0;" if is_radiant
+        "margin:15px auto 15px 0;" if is_radiant
         else "margin:15px 0 15px auto;"
     )
 
-    # arranca HTML
-    team_html = f"""
-    <html>
-      <head>
-        <meta charset="utf-8">
-        <style>
-          .team-title {{
-              font-size: 36px;
-              text-align: center;
-              margin: 30px 0;
-              font-weight: bold;
-              color: #FFFFFF;
-          }}
-          .player-card {{
-              width: 90%;
-              border: 2px solid #45aa44;
-              border-radius: 10px;
-              padding: 20px;
-              background-color: #1d1d45;
-              display: flex;
-              justify-content: space-between;
-              align-items: center;
-          }}
-          .player-info {{
-              display: flex;
-              align-items: center;
-          }}
-          .player-info img {{
-              border-radius: 50%;
-              margin-right: 20px;
-              width: 70px;
-              height: 70px;
-          }}
-          .nickname {{
-              font-size: 28px;
-              font-weight: bold;
-              color: #FFFFFF;
-          }}
-          .mmr {{
-              font-size: 24px;
-              color: #FFFFFF;
-          }}
-          .hero-info {{
-              display: flex;
-              align-items: center;
-          }}
-          .hero-info img {{
-              margin-right: 15px;
-              width: 70px;
-              height: 70px;
-          }}
-          .hero-name {{
-              font-size: 28px;
-              font-style: italic;
-              color: #FFFFFF;
-          }}
-        </style>
-      </head>
-      <body>
-        <div class="team-title">{team_name} (MMR: {total_mmr:,})</div>
-    """
+    # Título del equipo
+    st.markdown(
+        f"<div class='team-title'>{team_name} (MMR: {total_mmr:,})</div>",
+        unsafe_allow_html=True
+    )
 
-    # genera cada tarjeta con su margin inline
     for player in team_members:
         if player not in st.session_state.players:
             continue
         data = st.session_state.players[player]
+        # Base64 de medalla y héroe
         med_img = to_base64(IMAGES_DIR / data["medal"])
         hero = data.get("hero", "Sin héroe")
         hero_img = (
             to_base64(SOCIAL_DIR / f"{hero}.png")
-            if hero != "Sin héroe"
-            else ""
+            if hero != "Sin héroe" else ""
         )
-        team_html += f"""
-          <div class="player-card" style="{margin_style}">
-            <div class="player-info">
-              <img src="data:image/png;base64,{med_img}" alt="Medalla">
-              <div>
-                <div class="nickname">{player}</div>
-                <div class="mmr">{data['mmr']:,} MMR</div>
-              </div>
-            </div>
-            <div class="hero-info">
-              <img src="data:image/png;base64,{hero_img}" alt="Héroe">
-              <span class="hero-name">{hero}</span>
-            </div>
-          </div>
-        """
 
-    team_html += "</body></html>"
+        # Abre el contenedor HTML de la tarjeta
+        st.markdown(
+            f"<div class='player-card' style='{margin_style}'>",
+            unsafe_allow_html=True
+        )
+        # Columnas: medalla | nick+MMR | héroe+select | botón seleccionar
+        col1, col2, col3, col4 = st.columns([1, 3, 3, 1])
 
-    # muestra sin scrollbars en HTML
-    components.html(
-        team_html,
-        width=900,
-        height=1200,
-        scrolling=False
-    )
+        with col1:
+            if med_img:
+                st.image(f"data:image/png;base64,{med_img}", width=70)
+        with col2:
+            st.markdown(
+                f"<div class='nickname'>{player}</div>"
+                f"<div class='mmr'>{data['mmr']:,} MMR</div>",
+                unsafe_allow_html=True
+            )
+        with col3:
+            if hero_img:
+                st.image(f"data:image/png;base64,{hero_img}", width=70)
+            # selectbox de héroe solo en admin
+            if st.session_state.is_admin:
+                current = data.get("hero", "Selecciona Hero")
+                opts = ["Selecciona Hero"] + hero_names
+                idx = opts.index(current) if current in opts else 0
+                hero_sel = st.selectbox(
+                    "", opts,
+                    key=f"hero_select_{player}",
+                    index=idx
+                )
+                if hero_sel != "Selecciona Hero":
+                    st.session_state.players[player]["hero"] = hero_sel
+        with col4:
+            # botón seleccionar solo en admin
+            if st.session_state.is_admin:
+                if st.button("Seleccionar", key=f"sel_{player}"):
+                    st.session_state.selected_player = player
+
+        # Cierra el contenedor HTML de la tarjeta
+        st.markdown("</div>", unsafe_allow_html=True)
 
 
 #############################################
