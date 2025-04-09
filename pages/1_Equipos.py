@@ -7,6 +7,8 @@ import os
 import psycopg2
 import streamlit.components.v1 as components
 
+st.set_page_config(layout="wide")
+
 #############################################
 # Función para convertir imágenes a Base64
 #############################################
