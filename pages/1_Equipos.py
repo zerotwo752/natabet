@@ -355,7 +355,19 @@ if st.session_state.is_admin:
 # Nueva función para mostrar equipos con tarjetas HTML/CSS
 #############################################
 def display_team(team_name, team_members):
-    total_mmr = sum(st.session_state.players[p]["mmr"] for p in team_members if p in st.session_state.players)
+    total_mmr = sum(
+        st.session_state.players[p]["mmr"]
+        for p in team_members
+        if p in st.session_state.players
+    )
+    # determina alineación
+    is_radiant = team_name.lower() == "radiant"
+    margin_style = (
+        "margin:15px  auto 15px 0;" if is_radiant
+        else "margin:15px 0 15px auto;"
+    )
+
+    # arranca HTML
     team_html = f"""
     <html>
       <head>
@@ -369,15 +381,14 @@ def display_team(team_name, team_members):
               color: #FFFFFF;
           }}
           .player-card {{
+              width: 90%;
               border: 2px solid #45aa44;
               border-radius: 10px;
-              margin: 15px auto;
               padding: 20px;
               background-color: #1d1d45;
               display: flex;
               justify-content: space-between;
               align-items: center;
-              max-width: 800px;
           }}
           .player-info {{
               display: flex;
@@ -417,14 +428,21 @@ def display_team(team_name, team_members):
       <body>
         <div class="team-title">{team_name} (MMR: {total_mmr:,})</div>
     """
+
+    # genera cada tarjeta con su margin inline
     for player in team_members:
-        if player not in st.session_state.players: continue
+        if player not in st.session_state.players:
+            continue
         data = st.session_state.players[player]
         med_img = to_base64(IMAGES_DIR / data["medal"])
-        hero = data.get("hero","Sin héroe")
-        hero_img = to_base64(SOCIAL_DIR / f"{hero}.png") if hero!="Sin héroe" else ""
+        hero = data.get("hero", "Sin héroe")
+        hero_img = (
+            to_base64(SOCIAL_DIR / f"{hero}.png")
+            if hero != "Sin héroe"
+            else ""
+        )
         team_html += f"""
-          <div class="player-card">
+          <div class="player-card" style="{margin_style}">
             <div class="player-info">
               <img src="data:image/png;base64,{med_img}" alt="Medalla">
               <div>
@@ -438,13 +456,14 @@ def display_team(team_name, team_members):
             </div>
           </div>
         """
+
     team_html += "</body></html>"
 
-    # aquí ampliamos el canvas para evitar scrollbars
+    # muestra sin scrollbars en HTML
     components.html(
         team_html,
-        width=900,    # ajusta a tu gusto (>=800px para no cortar las tarjetas)
-        height=1200,  # ajusta según número de jugadores
+        width=900,
+        height=1200,
         scrolling=False
     )
 
