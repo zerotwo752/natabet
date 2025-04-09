@@ -1,13 +1,14 @@
-import streamlit as st
+import os
+import psycopg2
 
-st.title("💰 Sistema de Apuestas")
-
-# Ejemplo básico - amplía esto
-with st.form("apuesta_form"):
-    st.write("**Realizar una apuesta**")
-    equipo = st.radio("Equipo favorito:", ["Radiant", "Dire"])
-    monto = st.number_input("Monto a apostar:", min_value=1, step=10)
-    
-    if st.form_submit_button("Apostar"):
-        st.success(f"✅ Apuesta de {monto} USD en {equipo} registrada!")
-        # Aquí puedes agregar lógica para guardar apuestas
+DATABASE_URL = os.environ.get("DATABASE_URL")
+if DATABASE_URL is None:
+    print("DATABASE_URL no está definida")
+else:
+    print("Conectando a:", DATABASE_URL)
+    try:
+        conn = psycopg2.connect(DATABASE_URL)
+        print("Conexión exitosa")
+        conn.close()
+    except Exception as e:
+        print("Error de conexión:", e)
