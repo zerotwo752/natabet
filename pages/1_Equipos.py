@@ -303,19 +303,56 @@ if st.session_state.is_admin:
         else:
             st.info("No hay jugadores aún.")
         st.divider()
-        # Sección para asignar héroe mediante buscador
+        # Asignar Héroe
         st.header("Asignar Héroe a Jugador")
         if st.session_state.players:
-            selected_player = st.selectbox("Seleccionar Jugador", list(st.session_state.players.keys()), key="hero_player")
+            selected_player_hero = st.selectbox("Seleccionar Jugador", list(st.session_state.players.keys()), key="hero_player")
             hero_option = st.selectbox("Seleccionar Héroe", ["Selecciona Hero"] + hero_names, key="hero_option")
             if st.button("Asignar Héroe"):
                 if hero_option != "Selecciona Hero":
-                    st.session_state.players[selected_player]["hero"] = hero_option
-                    st.success(f"Héroe asignado a {selected_player}")
+                    st.session_state.players[selected_player_hero]["hero"] = hero_option
+                    st.success(f"Héroe asignado a {selected_player_hero}")
                 else:
                     st.error("Selecciona un héroe válido")
         else:
             st.info("No hay jugadores para asignar héroe.")
+        st.divider()
+        # Quitar Jugador (nueva sección)
+        st.header("Quitar Jugador")
+        if st.session_state.players:
+            selected_player_remove = st.selectbox("Seleccionar Jugador a Quitar", list(st.session_state.players.keys()), key="remove_player_sel")
+            if st.button("Quitar Jugador"):
+                # Eliminar jugador del diccionario
+                del st.session_state.players[selected_player_remove]
+                # Eliminar de equipos si está asignado
+                if selected_player_remove in st.session_state.radiant:
+                    st.session_state.radiant.remove(selected_player_remove)
+                if selected_player_remove in st.session_state.dire:
+                    st.session_state.dire.remove(selected_player_remove)
+                save_balanced_table(st.session_state.radiant, st.session_state.dire)
+                st.success(f"Jugador {selected_player_remove} eliminado")
+        else:
+            st.info("No hay jugadores para quitar.")
+        st.divider()
+        # Cambiar de Equipo (nueva sección)
+        st.header("Cambiar de Equipo")
+        if st.session_state.players:
+            selected_player_swap = st.selectbox("Seleccionar Jugador para Cambiar de Equipo", list(st.session_state.players.keys()), key="swap_player_sel")
+            if st.button("Cambiar de Equipo"):
+                # Si el jugador está en radiant, mover a dire y viceversa
+                if selected_player_swap in st.session_state.radiant:
+                    st.session_state.radiant.remove(selected_player_swap)
+                    st.session_state.dire.append(selected_player_swap)
+                    st.success(f"{selected_player_swap} pasado a Dire")
+                elif selected_player_swap in st.session_state.dire:
+                    st.session_state.dire.remove(selected_player_swap)
+                    st.session_state.radiant.append(selected_player_swap)
+                    st.success(f"{selected_player_swap} pasado a Radiant")
+                else:
+                    st.error(f"{selected_player_swap} no está asignado a ningún equipo aún")
+                save_balanced_table(st.session_state.radiant, st.session_state.dire)
+        else:
+            st.info("No hay jugadores para cambiar de equipo.")
         st.divider()
         if st.button(f"🔄 Shuffle Equipos ({len(st.session_state.players)}/10)", key="shuffle_button"):
             def balanced_shuffle():
@@ -359,25 +396,9 @@ if st.session_state.is_admin:
         st.divider()
         col_btn1, col_btn2, col_btn3 = st.columns(3)
         with col_btn1:
-            if st.button("🗑️ Quitar Jugador", disabled=not st.session_state.selected_player, key="remove_player"):
-                if st.session_state.selected_player:
-                    if st.session_state.selected_player in st.session_state.radiant:
-                        st.session_state.radiant.remove(st.session_state.selected_player)
-                    if st.session_state.selected_player in st.session_state.dire:
-                        st.session_state.dire.remove(st.session_state.selected_player)
-                    del st.session_state.players[st.session_state.selected_player]
-                    st.session_state.selected_player = None
-                    save_balanced_table(st.session_state.radiant, st.session_state.dire)
+            st.caption("Las funciones de quitar y cambiar se usan en las secciones de este sidebar")
         with col_btn2:
-            if st.button("🔄 Cambiar de Equipo", disabled=not st.session_state.selected_player, key="swap_team"):
-                if st.session_state.selected_player:
-                    if st.session_state.selected_player in st.session_state.radiant:
-                        st.session_state.radiant.remove(st.session_state.selected_player)
-                        st.session_state.dire.append(st.session_state.selected_player)
-                    else:
-                        st.session_state.dire.remove(st.session_state.selected_player)
-                        st.session_state.radiant.append(st.session_state.selected_player)
-                    save_balanced_table(st.session_state.radiant, st.session_state.dire)
+            st.caption("")
         with col_btn3:
             if st.session_state.combinations:
                 st.caption(f"Combinación {st.session_state.current_combo + 1}/{len(st.session_state.combinations)}")
@@ -563,5 +584,3 @@ whatsapp_html = f"""
 </div>
 """
 st.markdown(whatsapp_html, unsafe_allow_html=True)
-
-
