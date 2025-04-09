@@ -286,32 +286,34 @@ if st.session_state.is_admin:
         st.divider()
         if st.button(f"🔄 Shuffle Equipos ({len(st.session_state.players)}/10)", key="shuffle_button"):
             def balanced_shuffle():
-    player_names = list(st.session_state.players.keys())
-    if not player_names:
-        st.error("¡No hay jugadores para balancear!")
-        return
-    combo_list = []
-    total_players = len(player_names)
-    radiant_size = (total_players + 1) // 2
-    for _ in range(200):
-        random.shuffle(player_names)
-        radiant = player_names[:radiant_size]
-        dire = player_names[radiant_size:]
-        diff = abs(
-            sum(st.session_state.players[p]["mmr"] for p in radiant) -
-            sum(st.session_state.players[p]["mmr"] for p in dire)
-        )
-        combo_list.append((radiant, dire, diff))
-    combo_list.sort(key=lambda x: x[2])
-    st.session_state.combinations = combo_list[:10]
-    st.session_state.current_combo = 0
-    apply_combo()
-    save_balanced_table(st.session_state.radiant, st.session_state.dire)
-    # Reinicia la bandera para que en el próximo re-run se recarguen los datos de DB
-    st.session_state.db_loaded = False
-    st.success(f"¡Equipos balanceados ({len(st.session_state.radiant)}v{len(st.session_state.dire)})!")
-    st.experimental_rerun()
-
+                player_names = list(st.session_state.players.keys())
+                if not player_names:
+                    st.error("¡No hay jugadores para balancear!")
+                    return
+                combo_list = []
+                total_players = len(player_names)
+                radiant_size = (total_players + 1) // 2
+                for _ in range(200):
+                    random.shuffle(player_names)
+                    radiant = player_names[:radiant_size]
+                    dire = player_names[radiant_size:]
+                    diff = abs(
+                        sum(st.session_state.players[p]["mmr"] for p in radiant) -
+                        sum(st.session_state.players[p]["mmr"] for p in dire)
+                    )
+                    combo_list.append((radiant, dire, diff))
+                combo_list.sort(key=lambda x: x[2])
+                st.session_state.combinations = combo_list[:10]
+                st.session_state.current_combo = 0
+                apply_combo()
+                save_balanced_table(st.session_state.radiant, st.session_state.dire)
+                st.success(f"¡Equipos balanceados ({len(st.session_state.radiant)}v{len(st.session_state.dire)})!")
+            def apply_combo():
+                if st.session_state.combinations:
+                    radiant, dire, _ = st.session_state.combinations[st.session_state.current_combo]
+                    st.session_state.radiant = radiant
+                    st.session_state.dire = dire
+            balanced_shuffle()
         if st.button("🧨 Eliminar todos los jugadores", key="delete_all"):
             if st.checkbox("⚠️ ¿Estás SEGURO?", key="confirm_delete"):
                 st.session_state.players.clear()
@@ -455,6 +457,5 @@ whatsapp_html = f"""
 </div>
 """
 st.markdown(whatsapp_html, unsafe_allow_html=True)
-
 
 
