@@ -114,8 +114,7 @@ def get_db_connection():
 def init_db():
     conn = get_db_connection()
     cursor = conn.cursor()
-    # Si deseas mantener los datos entre despliegues, comenta la siguiente línea
-    
+    # Crea la tabla solo si no existe para evitar sobrescribir datos
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS balanced_teams (
             id SERIAL PRIMARY KEY,
@@ -127,6 +126,7 @@ def init_db():
     """)
     cursor.close()
     conn.close()
+
 
 def save_balanced_table(radiant, dire):
     conn = get_db_connection()
