@@ -115,7 +115,7 @@ def init_db():
     conn = get_db_connection()
     cursor = conn.cursor()
     # Si deseas mantener los datos entre despliegues, comenta la siguiente línea
-    cursor.execute("DROP TABLE IF EXISTS balanced_teams")
+    
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS balanced_teams (
             id SERIAL PRIMARY KEY,
