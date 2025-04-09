@@ -204,7 +204,7 @@ if "db_loaded" not in st.session_state:
     st.session_state.db_loaded = True
 
 #############################################
-# Función para asignar medalla según el MMR
+# Función para asignar medalla según MMR
 #############################################
 def get_medal(mmr: int) -> str:
     if mmr < 770:
@@ -271,7 +271,7 @@ with st.sidebar.expander("ADMIN (LOGIN)"):
             st.session_state.is_admin = False
 
 #############################################
-# Controles solo para Administradores
+# Controles para Administradores en el Sidebar
 #############################################
 if st.session_state.is_admin:
     with st.sidebar:
@@ -302,6 +302,20 @@ if st.session_state.is_admin:
                     st.error(f"Medalla no encontrada: {data['medal']}")
         else:
             st.info("No hay jugadores aún.")
+        st.divider()
+        # Sección para asignar héroe mediante buscador
+        st.header("Asignar Héroe a Jugador")
+        if st.session_state.players:
+            selected_player = st.selectbox("Seleccionar Jugador", list(st.session_state.players.keys()), key="hero_player")
+            hero_option = st.selectbox("Seleccionar Héroe", ["Selecciona Hero"] + hero_names, key="hero_option")
+            if st.button("Asignar Héroe"):
+                if hero_option != "Selecciona Hero":
+                    st.session_state.players[selected_player]["hero"] = hero_option
+                    st.success(f"Héroe asignado a {selected_player}")
+                else:
+                    st.error("Selecciona un héroe válido")
+        else:
+            st.info("No hay jugadores para asignar héroe.")
         st.divider()
         if st.button(f"🔄 Shuffle Equipos ({len(st.session_state.players)}/10)", key="shuffle_button"):
             def balanced_shuffle():
@@ -369,7 +383,7 @@ if st.session_state.is_admin:
                 st.caption(f"Combinación {st.session_state.current_combo + 1}/{len(st.session_state.combinations)}")
 
 #############################################
-# Función para mostrar equipos de manera estética (vista de usuarios normales)
+# Función para mostrar equipos (vista de usuarios normales)
 #############################################
 def display_team(team_name, team_members):
     total_mmr = sum(st.session_state.players[p]["mmr"] for p in team_members if p in st.session_state.players)
@@ -473,7 +487,6 @@ def display_team(team_name, team_members):
       </body>
     </html>
     """
-    # Renderizamos el HTML en un componente
     components.html(team_html, height=800, scrolling=True)
 
 #############################################
@@ -550,6 +563,5 @@ whatsapp_html = f"""
 </div>
 """
 st.markdown(whatsapp_html, unsafe_allow_html=True)
-
 
 
