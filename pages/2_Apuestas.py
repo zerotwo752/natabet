@@ -7,7 +7,6 @@ import os
 import psycopg2
 import streamlit.components.v1 as components
 
-# Configuración de la página en modo "wide" para usar todo el ancho
 st.set_page_config(layout="wide")
 
 #############################################
@@ -457,7 +456,6 @@ def display_team(team_name, team_members):
           }}
           .player-card {{
               display: flex;
-              justify-content: space-between;
               align-items: center;
               background-color: #1d1d45;
               border: 2px solid #45aa44;
@@ -469,7 +467,7 @@ def display_team(team_name, team_members):
               display: flex;
               align-items: center;
           }}
-          .player-info img {{
+          .player-info img.medalla {{
               border-radius: 50%;
               margin-right: 15px;
               width: 70px;
@@ -482,6 +480,7 @@ def display_team(team_name, team_members):
           .hero-info {{
               display: flex;
               align-items: center;
+              margin-left: 20px;
           }}
           .hero-info img {{
               width: 60px;
@@ -522,6 +521,7 @@ def display_team(team_name, team_members):
         player_data = st.session_state.players[player]
         medal_img_path = IMAGES_DIR / player_data["medal"]
         medal_img = to_base64(medal_img_path) if medal_img_path.exists() else ""
+        # Estructuramos la tarjeta con la información del jugador y el héroe en línea
         if player_data.get("hero") and player_data.get("hero") != "Selecciona Hero":
             hero_img_path = SOCIAL_DIR / f"{player_data['hero']}.png"
             hero_img = to_base64(hero_img_path) if hero_img_path.exists() else ""
@@ -536,13 +536,13 @@ def display_team(team_name, team_members):
         card = f"""
           <div class="player-card">
               <div class="player-info">
-                  <img src="data:image/png;base64,{medal_img}" alt="Medalla">
+                  <img class="medalla" src="data:image/png;base64,{medal_img}" alt="Medalla">
                   <div class="player-details">
                       <div>{player}</div>
                       <div>{player_data['mmr']:,} MMR</div>
                   </div>
+                  {hero_info}
               </div>
-              {hero_info}
           </div>
         """
         team_html += card
@@ -559,11 +559,13 @@ def display_team(team_name, team_members):
 with st.container():
     st.markdown("<div class='title'>Dota 2 Ñatabet</div>", unsafe_allow_html=True)
 
-# Para mostrar los equipos sin restricciones de ancho, se pueden poner uno debajo del otro
-if st.session_state.radiant:
-    display_team("Radiant", st.session_state.radiant)
-if st.session_state.dire:
-    display_team("Dire", st.session_state.dire)
+col1, col2 = st.columns(2)
+with col1:
+    if st.session_state.radiant:
+        display_team("Radiant", st.session_state.radiant)
+with col2:
+    if st.session_state.dire:
+        display_team("Dire", st.session_state.dire)
 
 if st.session_state.radiant and st.session_state.dire:
     diff = abs(
@@ -625,3 +627,4 @@ whatsapp_html = f"""
 </div>
 """
 st.markdown(whatsapp_html, unsafe_allow_html=True)
+
