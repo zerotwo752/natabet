@@ -437,6 +437,8 @@ def display_team(team_name, team_members):
               border-radius: 10px;
               margin: 10px 0;
               padding: 15px;
+              width: 100%;  /* Asegura que ocupe todo el ancho */
+              min-width: 800px;  /* Ancho mínimo para evitar compresión */
           }}
           .player-info {{
               display: flex;
