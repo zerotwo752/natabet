@@ -52,12 +52,11 @@ pato_img_path = SOCIAL_DIR / "pato.png"
 pato_img_base64 = to_base64(pato_img_path)
 
 #############################################
-# Inyección de CSS global para el HTML de vista de tabla
+# Inyección de CSS global para la vista de la tabla (usuarios normales)
 #############################################
-# Esta sección de CSS se aplicará al bloque HTML que se muestra a los usuarios normales.
 st.markdown(f"""
     <style>
-    /* Si bien se intenta ocultar el header, depende del entorno */
+    /* Se intenta ocultar el header (dependiendo del entorno) */
     header {{
       display: none;
     }}
@@ -67,21 +66,22 @@ st.markdown(f"""
       font-family: Arial, sans-serif;
     }}
     .team-title {{
-        font-size: 32px;
+        font-size: 36px;
         text-align: center;
-        margin: 20px 0;
+        margin: 30px 0;
         font-weight: bold;
+        color: #FFFFFF;
     }}
     .player-card {{
         border: 2px solid #45aa44;
         border-radius: 10px;
-        margin: 10px auto;
-        padding: 15px;
+        margin: 15px auto;
+        padding: 20px;
         background-color: #1d1d45;
         display: flex;
         justify-content: space-between;
         align-items: center;
-        max-width: 700px;
+        max-width: 800px;
     }}
     .player-info {{
         display: flex;
@@ -89,29 +89,32 @@ st.markdown(f"""
     }}
     .player-info img {{
         border-radius: 50%;
-        margin-right: 15px;
-        width: 60px;
-        height: 60px;
+        margin-right: 20px;
+        width: 70px;
+        height: 70px;
     }}
     .nickname {{
-        font-size: 24px;
+        font-size: 28px;
         font-weight: bold;
+        color: #FFFFFF;
     }}
     .mmr {{
-        font-size: 20px;
+        font-size: 24px;
+        color: #FFFFFF;
     }}
     .hero-info {{
         display: flex;
         align-items: center;
     }}
     .hero-info img {{
-        margin-right: 10px;
-        width: 60px;
-        height: 60px;
+        margin-right: 15px;
+        width: 70px;
+        height: 70px;
     }}
     .hero-name {{
-        font-size: 24px;
+        font-size: 28px;
         font-style: italic;
+        color: #FFFFFF;
     }}
     </style>
     """, unsafe_allow_html=True)
@@ -365,28 +368,29 @@ if st.session_state.is_admin:
 #############################################
 def display_team(team_name, team_members):
     total_mmr = sum(st.session_state.players[p]["mmr"] for p in team_members if p in st.session_state.players)
-    # Se arma un bloque HTML para el equipo entero
+    # Se arma un bloque HTML para el equipo entero con estilos integrados
     team_html = f"""
     <html>
       <head>
         <meta charset="utf-8">
         <style>
             .team-title {{
-                font-size: 32px;
+                font-size: 36px;
                 text-align: center;
-                margin: 20px 0;
+                margin: 30px 0;
                 font-weight: bold;
+                color: #FFFFFF;
             }}
             .player-card {{
                 border: 2px solid #45aa44;
                 border-radius: 10px;
-                margin: 10px auto;
-                padding: 15px;
+                margin: 15px auto;
+                padding: 20px;
                 background-color: #1d1d45;
                 display: flex;
                 justify-content: space-between;
                 align-items: center;
-                max-width: 700px;
+                max-width: 800px;
             }}
             .player-info {{
                 display: flex;
@@ -394,36 +398,39 @@ def display_team(team_name, team_members):
             }}
             .player-info img {{
                 border-radius: 50%;
-                margin-right: 15px;
-                width: 60px;
-                height: 60px;
+                margin-right: 20px;
+                width: 70px;
+                height: 70px;
             }}
             .nickname {{
-                font-size: 24px;
+                font-size: 28px;
                 font-weight: bold;
+                color: #FFFFFF;
             }}
             .mmr {{
-                font-size: 20px;
+                font-size: 24px;
+                color: #FFFFFF;
             }}
             .hero-info {{
                 display: flex;
                 align-items: center;
             }}
             .hero-info img {{
-                margin-right: 10px;
-                width: 60px;
-                height: 60px;
+                margin-right: 15px;
+                width: 70px;
+                height: 70px;
             }}
             .hero-name {{
-                font-size: 24px;
+                font-size: 28px;
                 font-style: italic;
+                color: #FFFFFF;
             }}
         </style>
       </head>
       <body>
         <div class="team-title">{team_name} (MMR: {total_mmr:,})</div>
     """
-    # Se generan las tarjetas para cada jugador
+    # Genera la tarjeta de cada jugador
     for player in team_members:
         if player not in st.session_state.players:
             continue
@@ -455,7 +462,7 @@ def display_team(team_name, team_members):
         """
         team_html += card
     team_html += "</body></html>"
-    # Se muestra todo el bloque HTML del equipo con un height ajustable según la cantidad de jugadores
+    # Muestra el bloque HTML completo; ajusta el height según la cantidad de jugadores
     components.html(team_html, height=800, scrolling=True)
 
 #############################################
@@ -530,8 +537,5 @@ whatsapp_html = f"""
 </div>
 """
 st.markdown(whatsapp_html, unsafe_allow_html=True)
-
-
-
 
 
