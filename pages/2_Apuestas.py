@@ -440,7 +440,7 @@ def display_team(team_name, team_members):
         <meta charset="utf-8">
         <style>
           .team-container {{
-              width: 1000px;
+              width: 800px;
               margin: 20px auto;
               padding: 20px;
               background-color: #272752;
