@@ -121,6 +121,29 @@ st.markdown(f"""
     .social-icon:hover {{
         transform: scale(1.1);
     }}
+
+    /* Personalización de scrollbars para navegadores Webkit (Chrome, Edge, Safari, Opera) */
+    ::-webkit-scrollbar {{
+        width: 20px;
+        height: 20px;
+    }}
+    ::-webkit-scrollbar-track {{
+        background: #2c2c2c;
+    }}
+    ::-webkit-scrollbar-thumb {{
+        background-color: #555;
+        border-radius: 10px;
+        border: 3px solid #2c2c2c;
+    }}
+    ::-webkit-scrollbar-thumb:hover {{
+        background-color: #444;
+    }}
+
+    /* Para Firefox en la parte interna del contenedor con scroll (ej: team-container) */
+    .team-container {{
+        scrollbar-width: auto;
+        scrollbar-color: #555 #2c2c2c;
+    }}
     </style>
     """, unsafe_allow_html=True)
 
@@ -408,7 +431,7 @@ if st.session_state.is_admin:
 #############################################
 def display_team(team_name, team_members):
     total_mmr = sum(st.session_state.players[p]["mmr"] for p in team_members if p in st.session_state.players)
-    # Armar HTML con diseño estético del cuadro
+    # Se modifica el ancho del contenedor (.team-container) para aprovechar más el ancho de la pantalla.
     team_html = f"""
     <html>
       <head>
@@ -438,8 +461,6 @@ def display_team(team_name, team_members):
               border-radius: 10px;
               margin: 10px 0;
               padding: 15px;
-              
-
           }}
           .player-info {{
               display: flex;
@@ -469,13 +490,31 @@ def display_team(team_name, team_members):
               color: #FFFFFF;
               font-style: italic;
           }}
+
+          /* Scrollbar personalizada para navegadores Webkit (Chrome, Edge, Safari, Opera) */
+          ::-webkit-scrollbar {{
+              width: 20px;
+              height: 20px;
+          }}
+          ::-webkit-scrollbar-track {{
+              background: #2c2c2c;
+          }}
+          ::-webkit-scrollbar-thumb {{
+              background-color: #555;
+              border-radius: 10px;
+              border: 3px solid #2c2c2c;
+          }}
+          ::-webkit-scrollbar-thumb:hover {{
+              background-color: #444;
+          }}
+
+          /* Firefox: ya se definió en el CSS global para .team-container */
         </style>
       </head>
       <body>
         <div class="team-container">
           <div class="team-title">{team_name} (MMR: {total_mmr:,})</div>
     """
-    # Por cada jugador, incluir tarjeta con medalla y datos
     for player in team_members:
         if player not in st.session_state.players:
             continue
