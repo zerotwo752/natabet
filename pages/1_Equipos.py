@@ -122,7 +122,7 @@ st.markdown(f"""
         transform: scale(1.1);
     }}
 
-    /* Personalización de scrollbars para navegadores Webkit (Chrome, Edge, Safari, Opera) */
+    /* Personalización de scrollbars para navegadores Webkit */
     ::-webkit-scrollbar {{
         width: 20px;
         height: 20px;
@@ -139,7 +139,7 @@ st.markdown(f"""
         background-color: #444;
     }}
 
-    /* Para Firefox en la parte interna del contenedor con scroll (ej: team-container) */
+    /* Para Firefox: aplicar estilos a contenedores que tengan scroll */
     .team-container {{
         scrollbar-width: auto;
         scrollbar-color: #555 #2c2c2c;
@@ -340,14 +340,12 @@ if st.session_state.is_admin:
         else:
             st.info("No hay jugadores para asignar héroe.")
         st.divider()
-        # Quitar Jugador (nueva sección)
+        # Quitar Jugador
         st.header("Quitar Jugador")
         if st.session_state.players:
             selected_player_remove = st.selectbox("Seleccionar Jugador a Quitar", list(st.session_state.players.keys()), key="remove_player_sel")
             if st.button("Quitar Jugador"):
-                # Eliminar jugador del diccionario
                 del st.session_state.players[selected_player_remove]
-                # Eliminar de equipos si está asignado
                 if selected_player_remove in st.session_state.radiant:
                     st.session_state.radiant.remove(selected_player_remove)
                 if selected_player_remove in st.session_state.dire:
@@ -357,12 +355,11 @@ if st.session_state.is_admin:
         else:
             st.info("No hay jugadores para quitar.")
         st.divider()
-        # Cambiar de Equipo (nueva sección)
+        # Cambiar de Equipo
         st.header("Cambiar de Equipo")
         if st.session_state.players:
             selected_player_swap = st.selectbox("Seleccionar Jugador para Cambiar de Equipo", list(st.session_state.players.keys()), key="swap_player_sel")
             if st.button("Cambiar de Equipo"):
-                # Si el jugador está en radiant, mover a dire y viceversa
                 if selected_player_swap in st.session_state.radiant:
                     st.session_state.radiant.remove(selected_player_swap)
                     st.session_state.dire.append(selected_player_swap)
@@ -427,23 +424,26 @@ if st.session_state.is_admin:
                 st.caption(f"Combinación {st.session_state.current_combo + 1}/{len(st.session_state.combinations)}")
 
 #############################################
-# Función para mostrar equipos (vista de usuarios normales)
+# Función para mostrar equipos (vista de usuarios)
 #############################################
 def display_team(team_name, team_members):
-    total_mmr = sum(st.session_state.players[p]["mmr"] for p in team_members if p in st.session_state.players)
-    # Se modifica el ancho del contenedor (.team-container) para aprovechar más el ancho de la pantalla.
+    total_mmr = sum(
+        st.session_state.players[p]["mmr"]
+        for p in team_members
+        if p in st.session_state.players
+    )
     team_html = f"""
     <html>
       <head>
         <meta charset="utf-8">
         <style>
           .team-container {{
+              /* Fijamos un ancho fijo para evitar scroll horizontal */
+              width: 1600px;
+              margin: 20px auto;
               padding: 20px;
               background-color: #272752;
               border-radius: 10px;
-              margin: 20px auto;
-              width: 100%;
-              max-width: 1200px;
           }}
           .team-title {{
               text-align: center;
@@ -491,7 +491,7 @@ def display_team(team_name, team_members):
               font-style: italic;
           }}
 
-          /* Scrollbar personalizada para navegadores Webkit (Chrome, Edge, Safari, Opera) */
+          /* Scrollbar personalizado para navegadores Webkit */
           ::-webkit-scrollbar {{
               width: 20px;
               height: 20px;
@@ -507,8 +507,6 @@ def display_team(team_name, team_members):
           ::-webkit-scrollbar-thumb:hover {{
               background-color: #444;
           }}
-
-          /* Firefox: ya se definió en el CSS global para .team-container */
         </style>
       </head>
       <body>
@@ -550,7 +548,8 @@ def display_team(team_name, team_members):
       </body>
     </html>
     """
-    components.html(team_html, height=900, width=2000, scrolling=True)
+    # Se fija el ancho del iframe a 1600px para que se muestre el contenedor completo sin scroll horizontal
+    components.html(team_html, height=900, width=1600, scrolling=True)
 
 #############################################
 # Vista principal (para TODOS los usuarios)
@@ -626,3 +625,4 @@ whatsapp_html = f"""
 </div>
 """
 st.markdown(whatsapp_html, unsafe_allow_html=True)
+
