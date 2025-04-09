@@ -439,7 +439,15 @@ def display_team(team_name, team_members):
           </div>
         """
     team_html += "</body></html>"
-    components.html(team_html, height=800, scrolling=True)
+
+    # aquí ampliamos el canvas para evitar scrollbars
+    components.html(
+        team_html,
+        width=900,    # ajusta a tu gusto (>=800px para no cortar las tarjetas)
+        height=1200,  # ajusta según número de jugadores
+        scrolling=False
+    )
+
 
 #############################################
 # Vista principal (para TODOS los usuarios)
