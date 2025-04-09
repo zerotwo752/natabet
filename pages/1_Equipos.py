@@ -390,10 +390,10 @@ def display_team(team_name, team_members):
         if player not in st.session_state.players:
             continue
         player_data = st.session_state.players[player]
-        # Preparamos la imagen de la medalla
+        # Prepara la imagen de la medalla
         medal_img_path = IMAGES_DIR / player_data["medal"]
         medal_img = to_base64(medal_img_path) if medal_img_path.exists() else ""
-        # Preparamos la información del héroe si está asignado
+        # Prepara la información del héroe (imagen y nombre)
         if player_data.get("hero") and player_data.get("hero") != "Selecciona Hero":
             hero_img_path = SOCIAL_DIR / f"{player_data['hero']}.png"
             hero_img = to_base64(hero_img_path) if hero_img_path.exists() else ""
@@ -405,7 +405,7 @@ def display_team(team_name, team_members):
             """
         else:
             hero_info_html = """<div class="hero-info"><span class="hero-name">Sin héroe</span></div>"""
-        # Construimos la tarjeta del jugador (card)
+        # Construye la tarjeta del jugador (card)
         card_html = f"""
         <div class="player-card">
             <div class="player-info">
@@ -418,10 +418,10 @@ def display_team(team_name, team_members):
             {hero_info_html}
         </div>
         """
-        # En lugar de st.markdown, usamos un componente HTML para asegurar la renderización completa
-        components.html(card_html, height=80, scrolling=False)
+        # Aumentamos la altura a 150px para que se muestre toda la información
+        components.html(card_html, height=150, scrolling=False)
         
-        # Controles de administración (opcional)
+        # Controles de administración (sólo se muestran si es admin)
         if st.session_state.is_admin:
             col1, col2 = st.columns([1, 2])
             with col1:
@@ -511,6 +511,7 @@ whatsapp_html = f"""
 </div>
 """
 st.markdown(whatsapp_html, unsafe_allow_html=True)
+
 
 
 
