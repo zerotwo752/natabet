@@ -345,41 +345,37 @@ if st.session_state.is_admin:
 def display_team(team_name, team_members):
     total = sum(st.session_state.players[p]["mmr"] for p in team_members)
     is_rad = team_name.lower()=="radiant"
-    mstyle = "margin:0 auto 0 0;" if is_rad else "margin:0 0 0 auto;"
+    # Título
     st.markdown(f"<div class='team-title'>{team_name} (MMR: {total:,})</div>", unsafe_allow_html=True)
-    for pl in team_members:
-        if pl not in st.session_state.players: continue
-        d = st.session_state.players[pl]
-        mb = to_base64(IMAGES_DIR/d["medal"])
-        hero = d.get("hero","Sin héroe")
-        hb = to_base64(SOCIAL_DIR/f"{hero}.png") if hero!="Sin héroe" else ""
-        # abre tarjeta
-        st.markdown(f"<div class='player-card' style='{mstyle}'>", unsafe_allow_html=True)
+    # Cada tarjeta
+    for p in team_members:
+        data = st.session_state.players.get(p)
+        if not data: continue
+        med = to_base64(IMAGES_DIR/data["medal"])
+        hero = data.get("hero","Sin héroe")
+        himg = to_base64(SOCIAL_DIR/f"{hero}.png") if hero!="Sin héroe" else ""
+        # wrapper
+        st.markdown("<div class='player-card'>", unsafe_allow_html=True)
         c1,c2,c3,c4 = st.columns([1,3,3,1])
         with c1:
-            if mb: st.image(f"data:image/png;base64,{mb}", width=80)
+            st.image(f"data:image/png;base64,{med}", width=70)
         with c2:
-            st.markdown(
-                f"<div class='nickname'>{pl}</div>"
-                f"<div class='mmr'>{d['mmr']:,} MMR</div>",
-                unsafe_allow_html=True
-            )
+            st.markdown(f"<div class='nickname'>{p}</div><div class='mmr'>{data['mmr']:,} MMR</div>",
+                        unsafe_allow_html=True)
         with c3:
-            if hb: st.image(f"data:image/png;base64,{hb}", width=80)
+            if himg: st.image(f"data:image/png;base64,{himg}", width=70)
             st.markdown(f"<div class='hero-name'>{hero}</div>", unsafe_allow_html=True)
             if st.session_state.is_admin:
                 opts = ["Selecciona Hero"]+hero_names
-                cur = hero if hero in opts else "Selecciona Hero"
-                idx = opts.index(cur)
-                sel = st.selectbox("", opts, key=f"hero_sel_{pl}", index=idx)
+                idx = opts.index(hero) if hero in opts else 0
+                sel = st.selectbox("", opts, key=f"hero_{p}", index=idx)
                 if sel!="Selecciona Hero":
-                    st.session_state.players[pl]["hero"]=sel
+                    st.session_state.players[p]["hero"]=sel
         with c4:
-            if st.session_state.is_admin:
-                if st.button("Seleccionar", key=f"sel_{pl}"):
-                    st.session_state.selected_player=pl
-        # cierra tarjeta
+            if st.session_state.is_admin and st.button("Seleccionar", key=f"sel_{p}"):
+                st.session_state.selected_player = p
         st.markdown("</div>", unsafe_allow_html=True)
+
 
 #############################################
 # Vista principal
