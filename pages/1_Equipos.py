@@ -127,7 +127,6 @@ def init_db():
     cursor.close()
     conn.close()
 
-
 def save_balanced_table(radiant, dire):
     conn = get_db_connection()
     cursor = conn.cursor()
@@ -151,7 +150,7 @@ def load_balanced_table():
     else:
         return None, None, None
 
-# Inicializamos la BD (solo la primera vez)
+# Inicializamos la BD (solo se ejecuta una vez)
 init_db()
 
 ############################################
@@ -172,14 +171,18 @@ if 'current_combo' not in st.session_state:
 if 'selected_player' not in st.session_state:
     st.session_state.selected_player = None
 
-#############################################
-# Carga la tabla desde la BD para TODOS
-#############################################
-radiant, dire, players = load_balanced_table()
-if radiant is not None and dire is not None:
-    st.session_state.radiant = radiant
-    st.session_state.dire = dire
-    st.session_state.players = players
+# Carga de datos desde la DB solo si aún no se han cargado (para no sobreescribir cambios en la sesión)
+if "db_loaded" not in st.session_state:
+    radiant, dire, players = load_balanced_table()
+    if radiant is not None and dire is not None:
+        st.session_state.radiant = radiant
+        st.session_state.dire = dire
+        st.session_state.players = players
+    else:
+        st.session_state.radiant = []
+        st.session_state.dire = []
+        st.session_state.players = {}
+    st.session_state.db_loaded = True
 
 #############################################
 # Definición global de get_medal
@@ -454,5 +457,6 @@ whatsapp_html = f"""
 </div>
 """
 st.markdown(whatsapp_html, unsafe_allow_html=True)
+
 
 
