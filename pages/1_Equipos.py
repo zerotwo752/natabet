@@ -5,6 +5,7 @@ import base64
 import json
 import os
 import psycopg2
+import streamlit.components.v1 as components
 
 #############################################
 # Función para convertir imágenes a Base64
@@ -389,10 +390,10 @@ def display_team(team_name, team_members):
         if player not in st.session_state.players:
             continue
         player_data = st.session_state.players[player]
-        # Medalla
+        # Preparamos la imagen de la medalla
         medal_img_path = IMAGES_DIR / player_data["medal"]
         medal_img = to_base64(medal_img_path) if medal_img_path.exists() else ""
-        # Si hay héroe asignado, mostramos imagen y nombre, sino un mensaje por defecto.
+        # Preparamos la información del héroe si está asignado
         if player_data.get("hero") and player_data.get("hero") != "Selecciona Hero":
             hero_img_path = SOCIAL_DIR / f"{player_data['hero']}.png"
             hero_img = to_base64(hero_img_path) if hero_img_path.exists() else ""
@@ -404,7 +405,7 @@ def display_team(team_name, team_members):
             """
         else:
             hero_info_html = """<div class="hero-info"><span class="hero-name">Sin héroe</span></div>"""
-        # Construimos la tarjeta del jugador
+        # Construimos la tarjeta del jugador (card)
         card_html = f"""
         <div class="player-card">
             <div class="player-info">
@@ -417,7 +418,8 @@ def display_team(team_name, team_members):
             {hero_info_html}
         </div>
         """
-        st.markdown(card_html, unsafe_allow_html=True)
+        # En lugar de st.markdown, usamos un componente HTML para asegurar la renderización completa
+        components.html(card_html, height=80, scrolling=False)
         
         # Controles de administración (opcional)
         if st.session_state.is_admin:
@@ -509,6 +511,7 @@ whatsapp_html = f"""
 </div>
 """
 st.markdown(whatsapp_html, unsafe_allow_html=True)
+
 
 
 
