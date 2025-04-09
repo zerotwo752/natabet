@@ -402,20 +402,21 @@ def display_team(team_name, team_members):
             """
             st.markdown(html_player, unsafe_allow_html=True)
             if st.session_state.is_admin:
-                btn_col1, btn_col2 = st.columns(2)
-                with btn_col1:
-                    if st.button("Seleccionar", key=f"btn_{player}"):
-                        st.session_state.selected_player = player
-                with btn_col2:
-                    current_hero = player_data.get("hero", "Selecciona Hero")
-                    hero_option = st.selectbox("Hero", ["Selecciona Hero"] + hero_names,
-                                                index=(["Selecciona Hero"] + hero_names).index(current_hero)
-                                                if current_hero in (["Selecciona Hero"] + hero_names) else 0,
-                                                key=f"hero_select_{player}")
-                    if hero_option != "Selecciona Hero":
-                        st.session_state.players[player]["hero"] = hero_option
+                # Creamos dos columnas para el botón y el select sin anidar columnas adicionales
+                col_admin = st.columns([1, 2])
+                if col_admin[0].button("Seleccionar", key=f"btn_{player}"):
+                    st.session_state.selected_player = player
+                current_hero = player_data.get("hero", "Selecciona Hero")
+                hero_option = col_admin[1].selectbox(
+                    "Hero", ["Selecciona Hero"] + hero_names,
+                    index=(["Selecciona Hero"] + hero_names).index(current_hero)
+                          if current_hero in (["Selecciona Hero"] + hero_names) else 0,
+                    key=f"hero_select_{player}"
+                )
+                if hero_option != "Selecciona Hero":
+                    st.session_state.players[player]["hero"] = hero_option
             if player_data.get("hero"):
-                # Se buscan las imágenes de héroes en SOCIAL_DIR
+                # Busca la imagen del héroe en SOCIAL_DIR
                 hero_img_path = SOCIAL_DIR / f"{player_data['hero']}.png"
                 hero_img_bytes = to_base64(hero_img_path) if hero_img_path.exists() else None
                 if hero_img_bytes:
@@ -426,6 +427,7 @@ def display_team(team_name, team_members):
                     )
                 else:
                     st.error(f"Imagen de héroe no encontrada: {player_data['hero']}.png")
+
 
 #############################################
 # Vista principal (para TODOS los usuarios)
