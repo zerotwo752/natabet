@@ -440,8 +440,7 @@ def display_team(team_name, team_members):
         <meta charset="utf-8">
         <style>
           .team-container {{
-              /* Se fija un ancho de 1600px y se asegura que el contenido sea visible */
-              width: 1600px;
+              width: 800px;
               margin: 20px auto;
               padding: 20px;
               background-color: #272752;
@@ -457,7 +456,6 @@ def display_team(team_name, team_members):
           }}
           .player-card {{
               display: flex;
-              justify-content: space-between;
               align-items: center;
               background-color: #1d1d45;
               border: 2px solid #45aa44;
@@ -469,7 +467,7 @@ def display_team(team_name, team_members):
               display: flex;
               align-items: center;
           }}
-          .player-info img {{
+          .player-info img.medalla {{
               border-radius: 50%;
               margin-right: 15px;
               width: 70px;
@@ -482,6 +480,7 @@ def display_team(team_name, team_members):
           .hero-info {{
               display: flex;
               align-items: center;
+              margin-left: 20px;
           }}
           .hero-info img {{
               width: 60px;
@@ -522,6 +521,7 @@ def display_team(team_name, team_members):
         player_data = st.session_state.players[player]
         medal_img_path = IMAGES_DIR / player_data["medal"]
         medal_img = to_base64(medal_img_path) if medal_img_path.exists() else ""
+        # Estructuramos la tarjeta con la información del jugador y el héroe en línea
         if player_data.get("hero") and player_data.get("hero") != "Selecciona Hero":
             hero_img_path = SOCIAL_DIR / f"{player_data['hero']}.png"
             hero_img = to_base64(hero_img_path) if hero_img_path.exists() else ""
@@ -536,13 +536,13 @@ def display_team(team_name, team_members):
         card = f"""
           <div class="player-card">
               <div class="player-info">
-                  <img src="data:image/png;base64,{medal_img}" alt="Medalla">
+                  <img class="medalla" src="data:image/png;base64,{medal_img}" alt="Medalla">
                   <div class="player-details">
                       <div>{player}</div>
                       <div>{player_data['mmr']:,} MMR</div>
                   </div>
+                  {hero_info}
               </div>
-              {hero_info}
           </div>
         """
         team_html += card
@@ -551,7 +551,6 @@ def display_team(team_name, team_members):
       </body>
     </html>
     """
-    # Se fija el ancho del iframe a 1600px para que se muestre el contenedor completo sin scroll horizontal
     components.html(team_html, height=900, width=1600, scrolling=True)
 
 #############################################
