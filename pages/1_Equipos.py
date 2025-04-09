@@ -508,7 +508,7 @@ def display_team(team_name, team_members):
       </body>
     </html>
     """
-    components.html(team_html, height=1000,width=1000, scrolling=True)
+    components.html(team_html, height=1000, width=2000, scrolling=True)
 
 #############################################
 # Vista principal (para TODOS los usuarios)
