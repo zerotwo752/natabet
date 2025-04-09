@@ -5,6 +5,13 @@ from pathlib import Path
 # Configuración
 YAPE_PATH = "yape/"
 DEFAULT_IMAGE = "default.jpg"
+#############################################
+# Función para convertir imágenes a Base64
+#############################################
+def to_base64(img_path: Path) -> str:
+    if img_path.exists():
+        return base64.b64encode(img_path.read_bytes()).decode()
+    return ""
 
 # Función mejorada para buscar imágenes
 def find_player_image(player_name):
