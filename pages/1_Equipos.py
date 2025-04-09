@@ -3,7 +3,6 @@ import random
 from pathlib import Path
 import base64
 import json
-from datetime import datetime
 import os
 import psycopg2
 
@@ -22,6 +21,28 @@ BASE_DIR = Path(__file__).parent.parent  # Sube un nivel desde /pages
 IMAGES_DIR = BASE_DIR / "imagenes"        # Ruta: web/imagenes
 SOCIAL_DIR = BASE_DIR / "social"          # Ruta: web/social
 YAPE_PATH = BASE_DIR / "yape"             # Ruta: web/yape
+
+#############################################
+# Lista de héroes (sin extensión)
+#############################################
+hero_names = [
+    "ABADDON", "ALCHEMIST", "ANCIENT_APPARITION", "ANTI_MAGE", "ANTI_MAGEM", "ARC_WARDEN", "AXE", "BANE", "BATRIDER",
+    "BEASTMASTER", "BLOODSEEKER", "BOUNTY_HUNTER", "BREWMASTER", "BRISTLEBACK", "BROODMOTHER", "CENTAUR_WARRUNNER",
+    "CHAOS_KNIGHT", "CHEN", "CLINKZ", "CLOCKWERK", "CRYSTAL_MAIDEN", "CRYSTAL_MAIDENP", "DARK_SEER", "DARK_WILLOW",
+    "DAWNBREAKER", "DAZZLE", "DEATH_PROPHET", "DISRUPTOR", "DOOM", "DRAGON_KNIGHT", "DRAGON_KNIGHTP", "DROW_RANGER",
+    "EARTHSHAKER", "EARTH_SPIRIT", "ELDER_TITAN", "EMBER_SPIRIT", "ENCHANTRESS", "ENIGMA", "FACELESS_VOID", "GRIMSTROKE",
+    "GYROCOPTER", "HOODWINK", "HUSKAR", "INVOKER", "INVOKERP", "IO", "JAKIRO", "JUGGERNAUT", "KEEPER_OF_THE_LIGHT",
+    "KEEZ", "KUNKKA", "LEGION_COMMANDER", "LESHRAC", "LICH", "LIFESTEALER", "LINA", "LION", "LONE_DRUID", "LUNA",
+    "LYCAN", "MAGNUS", "MARCI", "MARS", "MEDUSA", "MEEPO", "MIRANA", "MIRANAP", "MONKEY_KING", "MORPHLING", "MUERTA",
+    "NAGA_SIREN", "NATURES_PROPHET", "NECROPHOS", "NIGHT_STALKER", "NYX_ASSASSIN", "OGRE_MAGI", "OMNIKNIGHT", "ORACLE",
+    "OUTWORLD_DESTROYER", "PANGOLIER", "PHANTOM_ASSASSIN", "PHANTOM_ASSASSINP", "PHANTOM_LANCER", "PHOENIX",
+    "PRIMAL_BEAST", "PUCK", "PUDGE", "PUDGEP", "PUGNA", "QUEEN_OF_PAIN", "RAZOR", "RIKI", "RING_MASTER", "RUBICK",
+    "SAND_KING", "SHADOW_DEMON", "SHADOW_FIEND", "SHADOW_SHAMAN", "SILENCER", "SKYWRATH_MAGE", "SLARDAR", "SLARK",
+    "SNAPFIRE", "SNIPER", "SPECTRE", "SPIRIT_BREAKER", "STORM_SPIRIT", "SVEN", "TECHIES", "TEMPLAR_ASSASSIN",
+    "TERROBLADE", "TIDEHUNTER", "TIMBERSAW", "TINKER", "TINY", "TREANT_PROTECTOR", "TROLL_WARLORD", "TUSK",
+    "UNDERLORD", "UNDYING", "URSA", "VENGEFUL_SPIRIT", "VENOMANCER", "VIPER", "VISAGE", "VOID_SPIRIT", "WARLOCK",
+    "WEAVER", "WINDRANGER", "WINTER_WYVERN", "WITCH_DOCTOR", "WRAITH_KING", "ZEUS"
+]
 
 #############################################
 # Definir y convertir la imagen de fondo (pato)
@@ -114,7 +135,6 @@ def get_db_connection():
 def init_db():
     conn = get_db_connection()
     cursor = conn.cursor()
-    # Crea la tabla solo si no existe para evitar sobrescribir datos
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS balanced_teams (
             id SERIAL PRIMARY KEY,
@@ -150,7 +170,6 @@ def load_balanced_table():
     else:
         return None, None, None
 
-# Inicializamos la BD (solo se ejecuta una vez)
 init_db()
 
 ############################################
@@ -171,7 +190,6 @@ if 'current_combo' not in st.session_state:
 if 'selected_player' not in st.session_state:
     st.session_state.selected_player = None
 
-# Carga de datos desde la DB solo si aún no se han cargado (para no sobreescribir cambios en la sesión)
 if "db_loaded" not in st.session_state:
     radiant, dire, players = load_balanced_table()
     if radiant is not None and dire is not None:
@@ -384,8 +402,30 @@ def display_team(team_name, team_members):
             """
             st.markdown(html_player, unsafe_allow_html=True)
             if st.session_state.is_admin:
-                if st.button("Seleccionar", key=f"btn_{player}"):
-                    st.session_state.selected_player = player
+                btn_col1, btn_col2 = st.columns(2)
+                with btn_col1:
+                    if st.button("Seleccionar", key=f"btn_{player}"):
+                        st.session_state.selected_player = player
+                with btn_col2:
+                    current_hero = player_data.get("hero", "Selecciona Hero")
+                    hero_option = st.selectbox("Hero", ["Selecciona Hero"] + hero_names,
+                                                index=(["Selecciona Hero"] + hero_names).index(current_hero)
+                                                if current_hero in (["Selecciona Hero"] + hero_names) else 0,
+                                                key=f"hero_select_{player}")
+                    if hero_option != "Selecciona Hero":
+                        st.session_state.players[player]["hero"] = hero_option
+            if player_data.get("hero"):
+                # Se buscan las imágenes de héroes en SOCIAL_DIR
+                hero_img_path = SOCIAL_DIR / f"{player_data['hero']}.png"
+                hero_img_bytes = to_base64(hero_img_path) if hero_img_path.exists() else None
+                if hero_img_bytes:
+                    st.markdown(
+                        f"""<img src="data:image/png;base64,{hero_img_bytes}" width="40"
+                            style="display:inline-block; vertical-align: middle;">""",
+                        unsafe_allow_html=True
+                    )
+                else:
+                    st.error(f"Imagen de héroe no encontrada: {player_data['hero']}.png")
 
 #############################################
 # Vista principal (para TODOS los usuarios)
@@ -461,5 +501,6 @@ whatsapp_html = f"""
 </div>
 """
 st.markdown(whatsapp_html, unsafe_allow_html=True)
+
 
 
