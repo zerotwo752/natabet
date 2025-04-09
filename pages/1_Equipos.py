@@ -5,7 +5,6 @@ import base64
 import json
 import os
 import psycopg2
-import streamlit.components.v1 as components
 
 #############################################
 # Función para convertir imágenes a Base64
@@ -56,7 +55,7 @@ pato_img_base64 = to_base64(pato_img_path)
 #############################################
 st.markdown(f"""
     <style>
-    /* Oculta la barra superior (header) */
+    /* Se intenta ocultar la barra superior (si aplica) */
     header {{
       display: none;
     }}
@@ -81,57 +80,63 @@ st.markdown(f"""
         color: white !important;
         border: 1px solid #45aa44 !important;
     }}
+
+    /* Estilos para la vista de tabla de jugadores */
     .team-title {{
-        font-size: 28px;
-        color: #FFFFFF;
+        font-size: 32px;
+        text-align: center;
+        margin: 20px 0;
         font-weight: bold;
-        margin-top: 20px;
     }}
     .mmr-difference {{
         font-size: 24px;
-        color: #FFFFFF;
         font-weight: bold;
         text-align: center;
         margin-top: 20px;
     }}
     .title {{
-        font-size: 32px;
-        color: #FFD700;
-        font-weight: bold;
+        font-size: 36px;
         text-align: center;
-        margin-bottom: 20px;
+        margin-bottom: 30px;
+        font-weight: bold;
+        color: #FFD700;
     }}
     /* Estilos para la tarjeta de jugador */
     .player-card {{
         border: 2px solid #45aa44;
         border-radius: 10px;
-        margin: 5px 0;
-        padding: 10px;
+        margin: 10px 0;
+        padding: 15px;
         background-color: #1d1d45;
         display: flex;
         justify-content: space-between;
         align-items: center;
     }}
-    .player-info, .hero-info {{
+    .player-info {{
         display: flex;
         align-items: center;
     }}
     .player-info img {{
         border-radius: 50%;
-        margin-right: 10px;
+        margin-right: 15px;
+    }}
+    .nickname {{
+        font-size: 22px;
+        font-weight: bold;
+    }}
+    .mmr {{
+        font-size: 20px;
+    }}
+    .hero-info {{
+        display: flex;
+        align-items: center;
     }}
     .hero-info img {{
         margin-right: 10px;
     }}
-    .nickname {{
-        font-weight: bold;
-    }}
-    .mmr {{
-        font-size: 12px;
-    }}
     .hero-name {{
+        font-size: 22px;
         font-style: italic;
-        font-size: 12px;
     }}
     </style>
     """, unsafe_allow_html=True)
@@ -283,7 +288,7 @@ with st.sidebar.expander("ADMIN (LOGIN)"):
             st.session_state.is_admin = False
 
 #############################################
-# Controles solo para Administradores
+# Controles solo para Administradores (barra lateral)
 #############################################
 if st.session_state.is_admin:
     with st.sidebar:
@@ -381,11 +386,11 @@ if st.session_state.is_admin:
                 st.caption(f"Combinación {st.session_state.current_combo + 1}/{len(st.session_state.combinations)}")
 
 #############################################
-# Función para mostrar equipos con tarjetas de jugador
+# Función para mostrar equipos (vista de tabla para usuarios)
 #############################################
 def display_team(team_name, team_members):
     total_mmr = sum(st.session_state.players[p]["mmr"] for p in team_members if p in st.session_state.players)
-    st.markdown(f"<div class='team-title'>{team_name} (MMR: {total_mmr:,})</div>", unsafe_allow_html=True)
+    st.markdown(f"<h2 class='team-title'>{team_name} (MMR: {total_mmr:,})</h2>", unsafe_allow_html=True)
     for player in team_members:
         if player not in st.session_state.players:
             continue
@@ -399,7 +404,7 @@ def display_team(team_name, team_members):
             hero_img = to_base64(hero_img_path) if hero_img_path.exists() else ""
             hero_info_html = f"""
               <div class="hero-info">
-                  <img src="data:image/png;base64,{hero_img}" width="40">
+                  <img src="data:image/png;base64,{hero_img}" width="50">
                   <span class="hero-name">{player_data['hero']}</span>
               </div>
             """
@@ -409,7 +414,7 @@ def display_team(team_name, team_members):
         card_html = f"""
         <div class="player-card">
             <div class="player-info">
-                <img src="data:image/png;base64,{medal_img}" width="50">
+                <img src="data:image/png;base64,{medal_img}" width="60">
                 <div>
                     <div class="nickname">{player}</div>
                     <div class="mmr">{player_data['mmr']:,} MMR</div>
@@ -418,10 +423,8 @@ def display_team(team_name, team_members):
             {hero_info_html}
         </div>
         """
-        # Aumentamos la altura a 150px para que se muestre toda la información
-        components.html(card_html, height=150, scrolling=False)
-        
-        # Controles de administración (sólo se muestran si es admin)
+        st.markdown(card_html, unsafe_allow_html=True)
+        # Si es admin, se muestran los controles adicionales
         if st.session_state.is_admin:
             col1, col2 = st.columns([1, 2])
             with col1:
@@ -442,7 +445,7 @@ def display_team(team_name, team_members):
 #############################################
 # Vista principal (para TODOS los usuarios)
 #############################################
-st.markdown("<div class='title'>Dota 2 Ñatabet</div>", unsafe_allow_html=True)
+st.markdown("<h1 class='title'>Dota 2 Ñatabet</h1>", unsafe_allow_html=True)
 
 col1, col2 = st.columns(2)
 with col1:
@@ -511,6 +514,7 @@ whatsapp_html = f"""
 </div>
 """
 st.markdown(whatsapp_html, unsafe_allow_html=True)
+
 
 
 
