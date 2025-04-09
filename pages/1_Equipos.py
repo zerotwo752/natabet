@@ -317,14 +317,12 @@ if st.session_state.is_admin:
         else:
             st.info("No hay jugadores para asignar héroe.")
         st.divider()
-        # Quitar Jugador (nueva sección)
+        # Quitar Jugador
         st.header("Quitar Jugador")
         if st.session_state.players:
             selected_player_remove = st.selectbox("Seleccionar Jugador a Quitar", list(st.session_state.players.keys()), key="remove_player_sel")
             if st.button("Quitar Jugador"):
-                # Eliminar jugador del diccionario
                 del st.session_state.players[selected_player_remove]
-                # Eliminar de equipos si está asignado
                 if selected_player_remove in st.session_state.radiant:
                     st.session_state.radiant.remove(selected_player_remove)
                 if selected_player_remove in st.session_state.dire:
@@ -334,12 +332,11 @@ if st.session_state.is_admin:
         else:
             st.info("No hay jugadores para quitar.")
         st.divider()
-        # Cambiar de Equipo (nueva sección)
+        # Cambiar de Equipo
         st.header("Cambiar de Equipo")
         if st.session_state.players:
             selected_player_swap = st.selectbox("Seleccionar Jugador para Cambiar de Equipo", list(st.session_state.players.keys()), key="swap_player_sel")
             if st.button("Cambiar de Equipo"):
-                # Si el jugador está en radiant, mover a dire y viceversa
                 if selected_player_swap in st.session_state.radiant:
                     st.session_state.radiant.remove(selected_player_swap)
                     st.session_state.dire.append(selected_player_swap)
@@ -408,7 +405,7 @@ if st.session_state.is_admin:
 #############################################
 def display_team(team_name, team_members):
     total_mmr = sum(st.session_state.players[p]["mmr"] for p in team_members if p in st.session_state.players)
-    # Armar HTML con diseño estético del cuadro
+    # Armar HTML con diseño estético del cuadro sin scroll individual
     team_html = f"""
     <html>
       <head>
@@ -419,7 +416,7 @@ def display_team(team_name, team_members):
               background-color: #272752;
               border-radius: 10px;
               margin: 20px auto;
-              max-width: 900px;
+              max-width: 1200px;  /* Aquí puedes cambiar el ancho */
           }}
           .team-title {{
               text-align: center;
@@ -472,7 +469,6 @@ def display_team(team_name, team_members):
         <div class="team-container">
           <div class="team-title">{team_name} (MMR: {total_mmr:,})</div>
     """
-    # Por cada jugador, incluir tarjeta con medalla y datos
     for player in team_members:
         if player not in st.session_state.players:
             continue
@@ -508,7 +504,8 @@ def display_team(team_name, team_members):
       </body>
     </html>
     """
-    components.html(team_html, height=800, scrolling=True)
+    # Aquí no activamos scroll, se mostrará todo el contenido en la página
+    components.html(team_html, scrolling=False)
 
 #############################################
 # Vista principal (para TODOS los usuarios)
