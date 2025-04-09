@@ -419,7 +419,8 @@ def display_team(team_name, team_members):
               background-color: #272752;
               border-radius: 10px;
               margin: 20px auto;
-              width: fit-content;  /* Ajusta el ancho al contenido */
+              width: 100%;
+              max-width: 1200px;
           }}
           .team-title {{
               text-align: center;
