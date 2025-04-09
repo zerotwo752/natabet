@@ -5,6 +5,7 @@ import base64
 import json
 import os
 import psycopg2
+import streamlit.components.v1 as components
 
 #############################################
 # Función para convertir imágenes a Base64
@@ -51,66 +52,36 @@ pato_img_path = SOCIAL_DIR / "pato.png"
 pato_img_base64 = to_base64(pato_img_path)
 
 #############################################
-# Inyección de CSS global
+# Inyección de CSS global para el HTML de vista de tabla
 #############################################
+# Esta sección de CSS se aplicará al bloque HTML que se muestra a los usuarios normales.
 st.markdown(f"""
     <style>
-    /* Se intenta ocultar la barra superior (si aplica) */
+    /* Si bien se intenta ocultar el header, depende del entorno */
     header {{
       display: none;
     }}
-
-    .stApp {{
-        background-image: url("data:image/png;base64,{pato_img_base64}");
-        background-size: cover;
-        background-position: center 70%;
-        background-attachment: fixed;
-        background-color: #1a1a1a;
-        color: #FFFFFF !important;
+    body {{
+      margin: 0;
+      padding: 0;
+      font-family: Arial, sans-serif;
     }}
-    [data-testid="stSidebar"], [data-testid="stSidebar"] * {{
-        background-color: #1a1a1a !important;
-        color: #FFFFFF !important;
-    }}
-    h1, h2, h3, h4, h5, h6 {{
-        color: #FFD700 !important;
-    }}
-    .stButton>button {{
-        background-color: #1d1d45 !important;
-        color: white !important;
-        border: 1px solid #45aa44 !important;
-    }}
-
-    /* Estilos para la vista de tabla de jugadores */
     .team-title {{
         font-size: 32px;
         text-align: center;
         margin: 20px 0;
         font-weight: bold;
     }}
-    .mmr-difference {{
-        font-size: 24px;
-        font-weight: bold;
-        text-align: center;
-        margin-top: 20px;
-    }}
-    .title {{
-        font-size: 36px;
-        text-align: center;
-        margin-bottom: 30px;
-        font-weight: bold;
-        color: #FFD700;
-    }}
-    /* Estilos para la tarjeta de jugador */
     .player-card {{
         border: 2px solid #45aa44;
         border-radius: 10px;
-        margin: 10px 0;
+        margin: 10px auto;
         padding: 15px;
         background-color: #1d1d45;
         display: flex;
         justify-content: space-between;
         align-items: center;
+        max-width: 700px;
     }}
     .player-info {{
         display: flex;
@@ -119,9 +90,11 @@ st.markdown(f"""
     .player-info img {{
         border-radius: 50%;
         margin-right: 15px;
+        width: 60px;
+        height: 60px;
     }}
     .nickname {{
-        font-size: 22px;
+        font-size: 24px;
         font-weight: bold;
     }}
     .mmr {{
@@ -133,9 +106,11 @@ st.markdown(f"""
     }}
     .hero-info img {{
         margin-right: 10px;
+        width: 60px;
+        height: 60px;
     }}
     .hero-name {{
-        font-size: 22px;
+        font-size: 24px;
         font-style: italic;
     }}
     </style>
@@ -386,61 +361,102 @@ if st.session_state.is_admin:
                 st.caption(f"Combinación {st.session_state.current_combo + 1}/{len(st.session_state.combinations)}")
 
 #############################################
-# Función para mostrar equipos (vista de tabla para usuarios)
+# Función para mostrar equipos (vista de tabla para usuarios normales)
 #############################################
 def display_team(team_name, team_members):
     total_mmr = sum(st.session_state.players[p]["mmr"] for p in team_members if p in st.session_state.players)
-    st.markdown(f"<h2 class='team-title'>{team_name} (MMR: {total_mmr:,})</h2>", unsafe_allow_html=True)
+    # Se arma un bloque HTML para el equipo entero
+    team_html = f"""
+    <html>
+      <head>
+        <meta charset="utf-8">
+        <style>
+            .team-title {{
+                font-size: 32px;
+                text-align: center;
+                margin: 20px 0;
+                font-weight: bold;
+            }}
+            .player-card {{
+                border: 2px solid #45aa44;
+                border-radius: 10px;
+                margin: 10px auto;
+                padding: 15px;
+                background-color: #1d1d45;
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                max-width: 700px;
+            }}
+            .player-info {{
+                display: flex;
+                align-items: center;
+            }}
+            .player-info img {{
+                border-radius: 50%;
+                margin-right: 15px;
+                width: 60px;
+                height: 60px;
+            }}
+            .nickname {{
+                font-size: 24px;
+                font-weight: bold;
+            }}
+            .mmr {{
+                font-size: 20px;
+            }}
+            .hero-info {{
+                display: flex;
+                align-items: center;
+            }}
+            .hero-info img {{
+                margin-right: 10px;
+                width: 60px;
+                height: 60px;
+            }}
+            .hero-name {{
+                font-size: 24px;
+                font-style: italic;
+            }}
+        </style>
+      </head>
+      <body>
+        <div class="team-title">{team_name} (MMR: {total_mmr:,})</div>
+    """
+    # Se generan las tarjetas para cada jugador
     for player in team_members:
         if player not in st.session_state.players:
             continue
         player_data = st.session_state.players[player]
-        # Prepara la imagen de la medalla
         medal_img_path = IMAGES_DIR / player_data["medal"]
         medal_img = to_base64(medal_img_path) if medal_img_path.exists() else ""
-        # Prepara la información del héroe (imagen y nombre)
         if player_data.get("hero") and player_data.get("hero") != "Selecciona Hero":
             hero_img_path = SOCIAL_DIR / f"{player_data['hero']}.png"
             hero_img = to_base64(hero_img_path) if hero_img_path.exists() else ""
-            hero_info_html = f"""
+            hero_info = f"""
               <div class="hero-info">
-                  <img src="data:image/png;base64,{hero_img}" width="50">
+                  <img src="data:image/png;base64,{hero_img}" alt="Héroe">
                   <span class="hero-name">{player_data['hero']}</span>
               </div>
             """
         else:
-            hero_info_html = """<div class="hero-info"><span class="hero-name">Sin héroe</span></div>"""
-        # Construye la tarjeta del jugador (card)
-        card_html = f"""
-        <div class="player-card">
-            <div class="player-info">
-                <img src="data:image/png;base64,{medal_img}" width="60">
-                <div>
-                    <div class="nickname">{player}</div>
-                    <div class="mmr">{player_data['mmr']:,} MMR</div>
-                </div>
-            </div>
-            {hero_info_html}
-        </div>
+            hero_info = """<div class="hero-info"><span class="hero-name">Sin héroe</span></div>"""
+        card = f"""
+          <div class="player-card">
+              <div class="player-info">
+                  <img src="data:image/png;base64,{medal_img}" alt="Medalla">
+                  <div>
+                      <div class="nickname">{player}</div>
+                      <div class="mmr">{player_data['mmr']:,} MMR</div>
+                  </div>
+              </div>
+              {hero_info}
+          </div>
         """
-        st.markdown(card_html, unsafe_allow_html=True)
-        # Si es admin, se muestran los controles adicionales
-        if st.session_state.is_admin:
-            col1, col2 = st.columns([1, 2])
-            with col1:
-                if st.button("Seleccionar", key=f"btn_{player}"):
-                    st.session_state.selected_player = player
-            with col2:
-                current_hero = player_data.get("hero", "Selecciona Hero")
-                hero_option = st.selectbox(
-                    "Hero",
-                    ["Selecciona Hero"] + hero_names,
-                    key=f"hero_select_{player}",
-                    index=(["Selecciona Hero"] + hero_names).index(current_hero)
-                          if current_hero in (["Selecciona Hero"] + hero_names) else 0,
-                )
-                if hero_option != "Selecciona Hero":
-                    st.session_state.players[player]["hero"] = hero_option
+        team_html += card
+    team_html += "</body></html>"
+    # Se muestra todo el bloque HTML del equipo con un height ajustable según la cantidad de jugadores
+    components.html(team_html, height=800, scrolling=True)
 
 #############################################
 # Vista principal (para TODOS los usuarios)
@@ -514,7 +530,6 @@ whatsapp_html = f"""
 </div>
 """
 st.markdown(whatsapp_html, unsafe_allow_html=True)
-
 
 
 
