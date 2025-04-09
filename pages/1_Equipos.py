@@ -437,7 +437,7 @@ def display_team(team_name, team_members):
               border-radius: 10px;
               margin: 10px 0;
               padding: 15px;
-              min-width: 1000px;  /* Ancho mínimo garantizado */
+              
 
           }}
           .player-info {{
@@ -461,7 +461,7 @@ def display_team(team_name, team_members):
           .hero-info img {{
               width: 60px;
               height: 60px;
-              margin-left: 10px;
+              margin-right: 10px;
           }}
           .hero-name {{
               font-size: 24px;
