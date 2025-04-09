@@ -55,6 +55,11 @@ pato_img_base64 = to_base64(pato_img_path)
 #############################################
 st.markdown(f"""
     <style>
+    /* Oculta la barra superior (header) */
+    header {{
+      display: none;
+    }}
+
     .stApp {{
         background-image: url("data:image/png;base64,{pato_img_base64}");
         background-size: cover;
@@ -75,50 +80,57 @@ st.markdown(f"""
         color: white !important;
         border: 1px solid #45aa44 !important;
     }}
-    .player-box {{
-        background-color: #1d1d45;
+    .team-title {{
+        font-size: 28px;
         color: #FFFFFF;
-        padding: 10px;
-        border-radius: 5px;
-        margin-bottom: 5px;
-        font-size: 16px;
+        font-weight: bold;
+        margin-top: 20px;
     }}
     .mmr-difference {{
         font-size: 24px;
         color: #FFFFFF;
         font-weight: bold;
         text-align: center;
+        margin-top: 20px;
     }}
     .title {{
         font-size: 32px;
         color: #FFD700;
         font-weight: bold;
         text-align: center;
+        margin-bottom: 20px;
     }}
-    .team-title {{
-        font-size: 28px;
-        color: #FFFFFF;
-        font-weight: bold;
+    /* Estilos para la tarjeta de jugador */
+    .player-card {{
+        border: 2px solid #45aa44;
+        border-radius: 10px;
+        margin: 5px 0;
+        padding: 10px;
+        background-color: #1d1d45;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
     }}
-    .social-icons {{
-        position: fixed;
-        top: 60px;
-        left: 50px;
+    .player-info, .hero-info {{
         display: flex;
         align-items: center;
-        z-index: 1000;
-        background-color: rgba(0, 0, 0, 0.5);
-        border-radius: 10px;
-        padding: 5px;
     }}
-    .social-icon {{
-        width: 50px !important;
-        height: auto;
-        cursor: pointer;
-        transition: transform 0.2s;
+    .player-info img {{
+        border-radius: 50%;
+        margin-right: 10px;
     }}
-    .social-icon:hover {{
-        transform: scale(1.1);
+    .hero-info img {{
+        margin-right: 10px;
+    }}
+    .nickname {{
+        font-weight: bold;
+    }}
+    .mmr {{
+        font-size: 12px;
+    }}
+    .hero-name {{
+        font-style: italic;
+        font-size: 12px;
     }}
     </style>
     """, unsafe_allow_html=True)
@@ -352,7 +364,6 @@ if st.session_state.is_admin:
                         st.session_state.dire.remove(st.session_state.selected_player)
                     del st.session_state.players[st.session_state.selected_player]
                     st.session_state.selected_player = None
-                    # Actualizamos la DB tras quitar al jugador
                     save_balanced_table(st.session_state.radiant, st.session_state.dire)
         with col_btn2:
             if st.button("🔄 Cambiar de Equipo", disabled=not st.session_state.selected_player, key="swap_team"):
@@ -363,61 +374,58 @@ if st.session_state.is_admin:
                     else:
                         st.session_state.dire.remove(st.session_state.selected_player)
                         st.session_state.radiant.append(st.session_state.selected_player)
-                    # Actualizamos la DB tras cambiar el equipo
                     save_balanced_table(st.session_state.radiant, st.session_state.dire)
         with col_btn3:
             if st.session_state.combinations:
                 st.caption(f"Combinación {st.session_state.current_combo + 1}/{len(st.session_state.combinations)}")
 
 #############################################
-# Función para mostrar equipos
+# Función para mostrar equipos con tarjetas de jugador
 #############################################
 def display_team(team_name, team_members):
     total_mmr = sum(st.session_state.players[p]["mmr"] for p in team_members if p in st.session_state.players)
-    with st.container():
-        st.markdown(f"<div class='team-title'>{team_name} (MMR: {total_mmr:,})</div>", unsafe_allow_html=True)
+    st.markdown(f"<div class='team-title'>{team_name} (MMR: {total_mmr:,})</div>", unsafe_allow_html=True)
     for player in team_members:
         if player not in st.session_state.players:
             continue
         player_data = st.session_state.players[player]
-        # Se crean dos columnas para la medalla y los detalles del jugador
-        col_image, col_details = st.columns([1, 4])
-        with col_image:
-            img_path = IMAGES_DIR / player_data["medal"]
-            img_bytes = to_base64(img_path) if img_path.exists() else None
-            border_color = "#FFD700" if player == st.session_state.selected_player else "transparent"
-            if img_bytes:
-                st.markdown(
-                    f"""<img src="data:image/png;base64,{img_bytes}" width="50"
-                        style="border: 2px solid {border_color}; border-radius: 50%;">""",
-                    unsafe_allow_html=True
-                )
-            else:
-                st.error(f"Imagen no encontrada: {player_data['medal']}")
-        with col_details:
-            # Mostrar imagen del héroe (si está asignado) encima del recuadro del jugador
-            if player_data.get("hero") and player_data.get("hero") != "Selecciona Hero":
-                hero_img_path = SOCIAL_DIR / f"{player_data['hero']}.png"
-                hero_img_bytes = to_base64(hero_img_path) if hero_img_path.exists() else None
-                if hero_img_bytes:
-                    st.markdown(
-                        f"""<img src="data:image/png;base64,{hero_img_bytes}" width="40"
-                            style="display:inline-block; vertical-align: middle;">""",
-                        unsafe_allow_html=True
-                    )
-                else:
-                    st.error(f"Imagen de héroe no encontrada: {player_data['hero']}.png")
-            # Caja con información del jugador
-            st.markdown(
-                f"""<div class='player-box'>
-                    <span>{player} ({player_data['mmr']:,} MMR)</span>
-                    </div>""",
-                unsafe_allow_html=True
-            )
-            # Controles de administración sin columnas anidadas (se muestran uno debajo del otro)
-            if st.session_state.is_admin:
+        # Medalla
+        medal_img_path = IMAGES_DIR / player_data["medal"]
+        medal_img = to_base64(medal_img_path) if medal_img_path.exists() else ""
+        # Si hay héroe asignado, mostramos imagen y nombre, sino un mensaje por defecto.
+        if player_data.get("hero") and player_data.get("hero") != "Selecciona Hero":
+            hero_img_path = SOCIAL_DIR / f"{player_data['hero']}.png"
+            hero_img = to_base64(hero_img_path) if hero_img_path.exists() else ""
+            hero_info_html = f"""
+              <div class="hero-info">
+                  <img src="data:image/png;base64,{hero_img}" width="40">
+                  <span class="hero-name">{player_data['hero']}</span>
+              </div>
+            """
+        else:
+            hero_info_html = """<div class="hero-info"><span class="hero-name">Sin héroe</span></div>"""
+        # Construimos la tarjeta del jugador
+        card_html = f"""
+        <div class="player-card">
+            <div class="player-info">
+                <img src="data:image/png;base64,{medal_img}" width="50">
+                <div>
+                    <div class="nickname">{player}</div>
+                    <div class="mmr">{player_data['mmr']:,} MMR</div>
+                </div>
+            </div>
+            {hero_info_html}
+        </div>
+        """
+        st.markdown(card_html, unsafe_allow_html=True)
+        
+        # Controles de administración (opcional)
+        if st.session_state.is_admin:
+            col1, col2 = st.columns([1, 2])
+            with col1:
                 if st.button("Seleccionar", key=f"btn_{player}"):
                     st.session_state.selected_player = player
+            with col2:
                 current_hero = player_data.get("hero", "Selecciona Hero")
                 hero_option = st.selectbox(
                     "Hero",
@@ -432,8 +440,7 @@ def display_team(team_name, team_members):
 #############################################
 # Vista principal (para TODOS los usuarios)
 #############################################
-with st.container():
-    st.markdown("<div class='title'>Dota 2 Ñatabet</div>", unsafe_allow_html=True)
+st.markdown("<div class='title'>Dota 2 Ñatabet</div>", unsafe_allow_html=True)
 
 col1, col2 = st.columns(2)
 with col1:
@@ -448,8 +455,7 @@ if st.session_state.radiant and st.session_state.dire:
         sum(st.session_state.players[p]["mmr"] for p in st.session_state.radiant) -
         sum(st.session_state.players[p]["mmr"] for p in st.session_state.dire)
     )
-    with st.container():
-        st.markdown(f"<div class='mmr-difference'>Diferencia de MMR: {diff:,}</div>", unsafe_allow_html=True)
+    st.markdown(f"<div class='mmr-difference'>Diferencia de MMR: {diff:,}</div>", unsafe_allow_html=True)
 
 #############################################
 # Código para redes sociales (siempre visibles)
