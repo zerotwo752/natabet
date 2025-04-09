@@ -461,7 +461,7 @@ def display_team(team_name, team_members):
           .hero-info img {{
               width: 60px;
               height: 60px;
-              margin-right: 10px;
+              margin-left: 10px;
           }}
           .hero-name {{
               font-size: 24px;
