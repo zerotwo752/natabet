@@ -18,28 +18,53 @@ def to_base64(img_path: Path) -> str:
 #############################################
 # Rutas globales
 #############################################
-BASE_DIR = Path(__file__).parent.parent  # Sube un nivel desde /pages
-IMAGES_DIR = BASE_DIR / "imagenes"        # Ruta: web/imagenes
-SOCIAL_DIR = BASE_DIR / "social"          # Ruta: web/social
-YAPE_PATH = BASE_DIR / "yape"             # Ruta: web/yape
+BASE_DIR = Path(__file__).parent.parent
+IMAGES_DIR = BASE_DIR / "imagenes"
+SOCIAL_DIR = BASE_DIR / "social"
+YAPE_PATH = BASE_DIR / "yape"
 
 #############################################
 # Lista de héroes (sin extensión)
 #############################################
 hero_names = [
-    "ABADDON", "ALCHEMIST", "ANCIENT_APPARITION", "ANTI_MAGE", "ANTI_MAGEM", "ARC_WARDEN", "AXE", "BANE", "BATRIDER",
-    # ... (el resto de héroes)
-    "WRAITH_KING", "ZEUS"
+    "ABADDON", "ALCHEMIST", "ANCIENT_APPARITION", "ANTI_MAGE", "ANTI_MAGEM",
+    "ARC_WARDEN", "AXE", "BANE", "BATRIDER", "BEASTMASTER", "BLOODSEEKER",
+    "BOUNTY_HUNTER", "BREWMASTER", "BRISTLEBACK", "BROODMOTHER",
+    "CENTAUR_WARRUNNER", "CHAOS_KNIGHT", "CHEN", "CLINKZ", "CLOCKWERK",
+    "CRYSTAL_MAIDEN", "CRYSTAL_MAIDENP", "DARK_SEER", "DARK_WILLOW",
+    "DAWNBREAKER", "DAZZLE", "DEATH_PROPHET", "DISRUPTOR", "DOOM",
+    "DRAGON_KNIGHT", "DRAGON_KNIGHTP", "DROW_RANGER", "EARTHSHAKER",
+    "EARTH_SPIRIT", "ELDER_TITAN", "EMBER_SPIRIT", "ENCHANTRESS",
+    "ENIGMA", "FACELESS_VOID", "GRIMSTROKE", "GYROCOPTER", "HOODWINK",
+    "HUSKAR", "INVOKER", "INVOKERP", "IO", "JAKIRO", "JUGGERNAUT",
+    "KEEPER_OF_THE_LIGHT", "KEEZ", "KUNKKA", "LEGION_COMMANDER",
+    "LESHRAC", "LICH", "LIFESTEALER", "LINA", "LION", "LONE_DRUID",
+    "LUNA", "LYCAN", "MAGNUS", "MARCI", "MARS", "MEDUSA", "MEEPO",
+    "MIRANA", "MIRANAP", "MONKEY_KING", "MORPHLING", "MUERTA",
+    "NAGA_SIREN", "NATURES_PROPHET", "NECROPHOS", "NIGHT_STALKER",
+    "NYX_ASSASSIN", "OGRE_MAGI", "OMNIKNIGHT", "ORACLE",
+    "OUTWORLD_DESTROYER", "PANGOLIER", "PHANTOM_ASSASSIN",
+    "PHANTOM_ASSASSINP", "PHANTOM_LANCER", "PHOENIX", "PRIMAL_BEAST",
+    "PUCK", "PUDGE", "PUDGEP", "PUGNA", "QUEEN_OF_PAIN", "RAZOR",
+    "RIKI", "RING_MASTER", "RUBICK", "SAND_KING", "SHADOW_DEMON",
+    "SHADOW_FIEND", "SHADOW_SHAMAN", "SILENCER", "SKYWRATH_MAGE",
+    "SLARDAR", "SLARK", "SNAPFIRE", "SNIPER", "SPECTRE",
+    "SPIRIT_BREAKER", "STORM_SPIRIT", "SVEN", "TECHIES",
+    "TEMPLAR_ASSASSIN", "TERROBLADE", "TIDEHUNTER", "TIMBERSAW",
+    "TINKER", "TINY", "TREANT_PROTECTOR", "TROLL_WARLORD", "TUSK",
+    "UNDERLORD", "UNDYING", "URSA", "VENGEFUL_SPIRIT", "VENOMANCER",
+    "VIPER", "VISAGE", "VOID_SPIRIT", "WARLOCK", "WEAVER",
+    "WINDRANGER", "WINTER_WYVERN", "WITCH_DOCTOR", "WRAITH_KING", "ZEUS"
 ]
 
 #############################################
-# Definir y convertir la imagen de fondo (pato)
+# Imagen de fondo (pato)
 #############################################
 pato_img_path = SOCIAL_DIR / "pato.png"
 pato_img_base64 = to_base64(pato_img_path)
 
 #############################################
-# Inyección de CSS global
+# CSS global (fondo, sidebar, botones y tarjetas)
 #############################################
 st.markdown(f"""
     <style>
@@ -51,42 +76,60 @@ st.markdown(f"""
         background-color: #1a1a1a;
         color: #FFFFFF !important;
     }}
-    [data-testid="stSidebar"], [data-testid="stSidebar"] * {{
+    [data-testid="stSidebar"] {{
         background-color: #1a1a1a !important;
         color: #FFFFFF !important;
-    }}
-    h1, h2, h3, h4, h5, h6 {{
-        color: #FFD700 !important;
     }}
     .stButton>button {{
         background-color: #1d1d45 !important;
         color: white !important;
         border: 1px solid #45aa44 !important;
     }}
-    .player-box {{
-        background-color: #1d1d45;
-        color: #FFFFFF;
-        padding: 10px;
-        border-radius: 5px;
-        margin-bottom: 5px;
-        font-size: 16px;
-    }}
-    .mmr-difference {{
-        font-size: 24px;
-        color: #FFFFFF;
-        font-weight: bold;
+    .team-title {{
+        font-size: 36px;
         text-align: center;
+        margin: 30px 0;
+        font-weight: bold;
+        color: #FFFFFF;
+    }}
+    .player-card {{
+        width: 90%;
+        border: 2px solid #45aa44;
+        border-radius: 10px;
+        padding: 20px;
+        background-color: #1d1d45;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
+    }}
+    .nickname {{
+        font-size: 32px;
+        font-weight: bold;
+        color: #FFFFFF;
+    }}
+    .mmr {{
+        font-size: 28px;
+        color: #FFFFFF;
+    }}
+    .hero-name {{
+        font-size: 32px;
+        font-style: italic;
+        color: #FFFFFF;
+        margin-top: 10px;
     }}
     .title {{
-        font-size: 32px;
+        font-size: 40px;
         color: #FFD700;
         font-weight: bold;
         text-align: center;
     }}
-    .team-title {{
+    .mmr-difference {{
         font-size: 28px;
         color: #FFFFFF;
         font-weight: bold;
+        text-align: center;
+        margin-top: 20px;
     }}
     .social-icons {{
         position: fixed;
@@ -101,67 +144,58 @@ st.markdown(f"""
     }}
     .social-icon {{
         width: 50px !important;
-        height: auto;
         cursor: pointer;
+        margin-right: 10px;
         transition: transform 0.2s;
     }}
     .social-icon:hover {{
         transform: scale(1.1);
     }}
     </style>
-    """, unsafe_allow_html=True)
+""", unsafe_allow_html=True)
 
 #############################################
-# Configuración de la Base de Datos (PostgreSQL)
+# Configuración de la Base de Datos
 #############################################
 def get_db_connection():
-    DATABASE_URL = os.environ.get("DATABASE_URL")
-    conn = psycopg2.connect(DATABASE_URL)
+    conn = psycopg2.connect(os.environ["DATABASE_URL"])
     conn.autocommit = True
     return conn
 
 def init_db():
-    conn = get_db_connection()
-    cursor = conn.cursor()
-    cursor.execute("""
+    c = get_db_connection().cursor()
+    c.execute("""
         CREATE TABLE IF NOT EXISTS balanced_teams (
             id SERIAL PRIMARY KEY,
-            radiant TEXT,
-            dire TEXT,
-            players TEXT,
+            radiant TEXT, dire TEXT, players TEXT,
             updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
     """)
-    cursor.close()
-    conn.close()
+    c.close()
 
 def save_balanced_table(radiant, dire):
     conn = get_db_connection()
-    cursor = conn.cursor()
-    cursor.execute("DELETE FROM balanced_teams")
-    cursor.execute(
-        "INSERT INTO balanced_teams (radiant, dire, players) VALUES (%s, %s, %s)",
+    cur = conn.cursor()
+    cur.execute("DELETE FROM balanced_teams")
+    cur.execute(
+        "INSERT INTO balanced_teams (radiant, dire, players) VALUES (%s,%s,%s)",
         (json.dumps(radiant), json.dumps(dire), json.dumps(st.session_state.players))
     )
-    cursor.close()
-    conn.close()
+    cur.close()
 
 def load_balanced_table():
-    conn = get_db_connection()
-    cursor = conn.cursor()
-    cursor.execute("SELECT radiant, dire, players FROM balanced_teams ORDER BY updated_at DESC LIMIT 1")
-    row = cursor.fetchone()
-    cursor.close()
-    conn.close()
+    cur = get_db_connection().cursor()
+    cur.execute("SELECT radiant,dire,players FROM balanced_teams ORDER BY updated_at DESC LIMIT 1")
+    row = cur.fetchone()
+    cur.close()
     if row:
         return json.loads(row[0]), json.loads(row[1]), json.loads(row[2])
-    else:
-        return None, None, None
+    return None, None, None
 
 init_db()
 
 #############################################
-# Inicialización de estado
+# Estado inicial
 #############################################
 if 'is_admin' not in st.session_state:
     st.session_state.is_admin = False
@@ -179,166 +213,120 @@ if 'selected_player' not in st.session_state:
     st.session_state.selected_player = None
 
 if "db_loaded" not in st.session_state:
-    radiant, dire, players = load_balanced_table()
-    if radiant is not None and dire is not None:
-        st.session_state.radiant = radiant
-        st.session_state.dire = dire
-        st.session_state.players = players
+    rad, di, pl = load_balanced_table()
+    if rad:
+        st.session_state.radiant = rad
+        st.session_state.dire = di
+        st.session_state.players = pl
     st.session_state.db_loaded = True
 
 #############################################
-# Definición global de get_medal
+# Medallas según MMR
 #############################################
-def get_medal(mmr: int) -> str:
+def get_medal(mmr):
     if mmr < 770:
-        stars = min(5, 1 + mmr // 150)
-        return f"heraldo{stars}.png"
-    elif mmr < 1540:
-        stars = min(5, 1 + (mmr - 770) // 160)
-        return f"guardian{stars}.png"
-    elif mmr < 2310:
-        stars = min(5, 1 + (mmr - 1540) // 160)
-        return f"cruzado{stars}.png"
-    elif mmr < 3080:
-        stars = min(5, 1 + (mmr - 2310) // 150)
-        return f"arconte{stars}.png"
-    elif mmr < 3850:
-        stars = min(5, 1 + (mmr - 3080) // 150)
-        return f"leyenda{stars}.png"
-    elif mmr < 4620:
-        stars = min(5, 1 + (mmr - 3850) // 150)
-        return f"ancestro{stars}.png"
-    elif mmr < 5621:
-        stars = min(5, 1 + (mmr - 4620) // 200)
-        return f"divino{stars}.png"
-    elif mmr < 6300:
-        return "inmortal0.png"
-    elif mmr < 8500:
-        return "inmortal.png"
-    elif mmr < 12500:
-        return "inmortal_top.png"
-    else:
-        return "inmortal_top1.png"
+        s = min(5, 1 + mmr//150); return f"heraldo{s}.png"
+    if mmr < 1540:
+        s = min(5, 1 + (mmr-770)//160); return f"guardian{s}.png"
+    if mmr < 2310:
+        s = min(5, 1 + (mmr-1540)//160); return f"cruzado{s}.png"
+    if mmr < 3080:
+        s = min(5, 1 + (mmr-2310)//150); return f"arconte{s}.png"
+    if mmr < 3850:
+        s = min(5, 1 + (mmr-3080)//150); return f"leyenda{s}.png"
+    if mmr < 4620:
+        s = min(5, 1 + (mmr-3850)//150); return f"ancestro{s}.png"
+    if mmr < 5621:
+        s = min(5, 1 + (mmr-4620)//200); return f"divino{s}.png"
+    if mmr < 6300: return "inmortal0.png"
+    if mmr < 8500: return "inmortal.png"
+    if mmr < 12500: return "inmortal_top.png"
+    return "inmortal_top1.png"
 
 #############################################
-# Función para buscar imagen de jugador (en YAPE)
-#############################################
-def find_player_image(player_name: str) -> str:
-    clean_name = ''.join(c if c.isalnum() else '_' for c in player_name.lower())
-    for ext in ['.jpg', '.jpeg', '.png']:
-        img_path = YAPE_PATH / f"{clean_name}{ext}"
-        if img_path.exists():
-            return to_base64(img_path)
-    return to_base64(YAPE_PATH / "default.jpg")
-
-#############################################
-# Panel de Administración en el Sidebar
+# Login Admin
 #############################################
 with st.sidebar.expander("ADMIN (LOGIN)"):
-    admin_credentials = {
-        'yair': 'yair123',
-        'fernando': 'fernando123'
-    }
+    creds = {'yair':'yair123','fernando':'fernando123'}
     if not st.session_state.is_admin:
-        username = st.text_input("Usuario", key="login_username")
-        password = st.text_input("Contraseña", type="password", key="login_password")
-        if st.button("Ingresar", key="login_button"):
-            if username in admin_credentials and admin_credentials[username] == password:
-                st.session_state.is_admin = True
-                st.success("👑 Administrador autenticado")
-            else:
-                st.error("Credenciales incorrectas")
+        u = st.text_input("Usuario", key="u")
+        p = st.text_input("Contraseña", type="password", key="p")
+        if st.button("Ingresar"):
+            if creds.get(u)==p:
+                st.session_state.is_admin=True; st.success("👑 Autenticado")
+            else: st.error("Credenciales incorrectas")
     else:
-        st.write("👑 Administrador conectado")
+        st.write("👑 Conectado")
         if st.button("🔒 Cerrar sesión"):
-            st.session_state.is_admin = False
+            st.session_state.is_admin=False
 
 #############################################
-# Controles solo para Administradores
+# Panel Admin: añadir/jugadores, shuffle, etc.
 #############################################
 if st.session_state.is_admin:
     with st.sidebar:
         st.header(f"➕ Agregar Jugador ({len(st.session_state.players)}/10)")
-        name = st.text_input("Nombre", key="add_name")
-        mmr = st.number_input("MMR", min_value=0, step=100, key="add_mmr")
-        if st.button("Agregar", key="add_button"):
-            if name and mmr is not None:
-                st.session_state.players[name] = {
-                    "mmr": mmr,
-                    "medal": get_medal(mmr)
-                }
+        n = st.text_input("Nombre", key="add_n")
+        m = st.number_input("MMR", min_value=0, step=100, key="add_m")
+        if st.button("Agregar"):
+            if n and m is not None:
+                st.session_state.players[n] = {"mmr":m,"medal":get_medal(m)}
         st.divider()
         st.header("🏷️ Lista de Jugadores")
         if st.session_state.players:
-            for pname, data in st.session_state.players.items():
-                img_path = IMAGES_DIR / data["medal"]
-                img_bytes = to_base64(img_path) if img_path.exists() else None
-                if img_bytes:
-                    st.markdown(
-                        f"""<div style="display: flex; align-items: center; gap: 10px;">
-                            <img src="data:image/png;base64,{img_bytes}" width="30">
-                            <span>{pname} ({data['mmr']} MMR)</span>
-                        </div>""",
-                        unsafe_allow_html=True
-                    )
-                else:
-                    st.error(f"Medalla no encontrada: {data['medal']}")
+            for pn, dt in st.session_state.players.items():
+                mb = to_base64(IMAGES_DIR/ dt["medal"])
+                st.markdown(
+                    f"""<div style="display:flex;align-items:center;gap:8px">
+                        <img src="data:image/png;base64,{mb}" width="30">
+                        <span>{pn} ({dt['mmr']} MMR)</span>
+                    </div>""",
+                    unsafe_allow_html=True
+                )
         else:
             st.info("No hay jugadores aún.")
         st.divider()
-        if st.button(f"🔄 Shuffle Equipos ({len(st.session_state.players)}/10)", key="shuffle_button"):
-            def balanced_shuffle():
-                player_names = list(st.session_state.players.keys())
-                if not player_names:
-                    st.error("¡No hay jugadores para balancear!")
-                    return
-                combo_list = []
-                total_players = len(player_names)
-                radiant_size = (total_players + 1) // 2
+        if st.button(f"🔄 Shuffle Equipos ({len(st.session_state.players)}/10)"):
+            def bs():
+                names = list(st.session_state.players)
+                combos=[]
+                sz=(len(names)+1)//2
                 for _ in range(200):
-                    random.shuffle(player_names)
-                    radiant = player_names[:radiant_size]
-                    dire = player_names[radiant_size:]
-                    diff = abs(
-                        sum(st.session_state.players[p]["mmr"] for p in radiant) -
-                        sum(st.session_state.players[p]["mmr"] for p in dire)
-                    )
-                    combo_list.append((radiant, dire, diff))
-                combo_list.sort(key=lambda x: x[2])
-                st.session_state.combinations = combo_list[:10]
-                st.session_state.current_combo = 0
-                def apply_combo():
-                    if st.session_state.combinations:
-                        r, d, _ = st.session_state.combinations[st.session_state.current_combo]
-                        st.session_state.radiant = r
-                        st.session_state.dire = d
-                apply_combo()
-                save_balanced_table(st.session_state.radiant, st.session_state.dire)
-                st.success(f"¡Equipos balanceados ({len(st.session_state.radiant)}v{len(st.session_state.dire)})!")
-            balanced_shuffle()
-        if st.button("🧨 Eliminar todos los jugadores", key="delete_all"):
-            if st.checkbox("⚠️ ¿Estás SEGURO?", key="confirm_delete"):
+                    random.shuffle(names)
+                    r=names[:sz]; d=names[sz:]
+                    diff=abs(sum(st.session_state.players[x]["mmr"] for x in r)
+                             - sum(st.session_state.players[x]["mmr"] for x in d))
+                    combos.append((r,d,diff))
+                combos.sort(key=lambda x:x[2])
+                st.session_state.combinations=combos[:10]
+                st.session_state.current_combo=0
+                st.session_state.radiant,st.session_state.dire,_=combos[0]
+                save_balanced_table(st.session_state.radiant,st.session_state.dire)
+                st.success("¡Equipos balanceados!")
+            bs()
+        if st.button("🧨 Eliminar todos"):
+            if st.checkbox("⚠️ Seguro?", key="delc"):
                 st.session_state.players.clear()
                 st.session_state.radiant.clear()
                 st.session_state.dire.clear()
                 st.session_state.combinations.clear()
-                st.session_state.current_combo = 0
-                st.session_state.selected_player = None
-                st.success("✅ Todos los jugadores eliminados.")
+                st.session_state.current_combo=0
+                st.session_state.selected_player=None
+                st.success("✅ Eliminados")
         st.divider()
-        col_btn1, col_btn2, col_btn3 = st.columns(3)
-        with col_btn1:
-            if st.button("🗑️ Quitar Jugador", disabled=not st.session_state.selected_player, key="remove_player"):
-                p = st.session_state.selected_player
+        c1,c2,c3=st.columns(3)
+        with c1:
+            if st.button("🗑️ Quitar", disabled=not st.session_state.selected_player):
+                p=st.session_state.selected_player
                 if p:
                     if p in st.session_state.radiant: st.session_state.radiant.remove(p)
                     if p in st.session_state.dire:    st.session_state.dire.remove(p)
                     del st.session_state.players[p]
-                    st.session_state.selected_player = None
-                    save_balanced_table(st.session_state.radiant, st.session_state.dire)
-        with col_btn2:
-            if st.button("🔄 Cambiar de Equipo", disabled=not st.session_state.selected_player, key="swap_team"):
-                p = st.session_state.selected_player
+                    st.session_state.selected_player=None
+                    save_balanced_table(st.session_state.radiant,st.session_state.dire)
+        with c2:
+            if st.button("🔄 Swap", disabled=not st.session_state.selected_player):
+                p=st.session_state.selected_player
                 if p:
                     if p in st.session_state.radiant:
                         st.session_state.radiant.remove(p)
@@ -346,93 +334,57 @@ if st.session_state.is_admin:
                     else:
                         st.session_state.dire.remove(p)
                         st.session_state.radiant.append(p)
-                    save_balanced_table(st.session_state.radiant, st.session_state.dire)
-        with col_btn3:
+                    save_balanced_table(st.session_state.radiant,st.session_state.dire)
+        with c3:
             if st.session_state.combinations:
-                st.caption(f"Combinación {st.session_state.current_combo+1}/{len(st.session_state.combinations)}")
+                st.caption(f"Combo {st.session_state.current_combo+1}/{len(st.session_state.combinations)}")
 
 #############################################
-# Nueva función para mostrar equipos con tarjetas HTML/CSS
+# Función display_team actualizada
 #############################################
 def display_team(team_name, team_members):
-    total_mmr = sum(
-        st.session_state.players[p]["mmr"]
-        for p in team_members
-        if p in st.session_state.players
-    )
-    # ¿Radiant a la izquierda, Dire a la derecha?
-    is_radiant = team_name.lower() == "radiant"
-    margin_style = (
-        "margin:15px auto 15px 0;" if is_radiant
-        else "margin:15px 0 15px auto;"
-    )
-
-    # Título del equipo
-    st.markdown(
-        f"<div class='team-title'>{team_name} (MMR: {total_mmr:,})</div>",
-        unsafe_allow_html=True
-    )
-
-    for player in team_members:
-        if player not in st.session_state.players:
-            continue
-        data = st.session_state.players[player]
-        # Base64 de medalla y héroe
-        med_img = to_base64(IMAGES_DIR / data["medal"])
-        hero = data.get("hero", "Sin héroe")
-        hero_img = (
-            to_base64(SOCIAL_DIR / f"{hero}.png")
-            if hero != "Sin héroe" else ""
-        )
-
-        # Abre el contenedor HTML de la tarjeta
-        st.markdown(
-            f"<div class='player-card' style='{margin_style}'>",
-            unsafe_allow_html=True
-        )
-        # Columnas: medalla | nick+MMR | héroe+select | botón seleccionar
-        col1, col2, col3, col4 = st.columns([1, 3, 3, 1])
-
-        with col1:
-            if med_img:
-                st.image(f"data:image/png;base64,{med_img}", width=70)
-        with col2:
+    total = sum(st.session_state.players[p]["mmr"] for p in team_members)
+    is_rad = team_name.lower()=="radiant"
+    mstyle = "margin:0 auto 0 0;" if is_rad else "margin:0 0 0 auto;"
+    st.markdown(f"<div class='team-title'>{team_name} (MMR: {total:,})</div>", unsafe_allow_html=True)
+    for pl in team_members:
+        if pl not in st.session_state.players: continue
+        d = st.session_state.players[pl]
+        mb = to_base64(IMAGES_DIR/d["medal"])
+        hero = d.get("hero","Sin héroe")
+        hb = to_base64(SOCIAL_DIR/f"{hero}.png") if hero!="Sin héroe" else ""
+        # abre tarjeta
+        st.markdown(f"<div class='player-card' style='{mstyle}'>", unsafe_allow_html=True)
+        c1,c2,c3,c4 = st.columns([1,3,3,1])
+        with c1:
+            if mb: st.image(f"data:image/png;base64,{mb}", width=80)
+        with c2:
             st.markdown(
-                f"<div class='nickname'>{player}</div>"
-                f"<div class='mmr'>{data['mmr']:,} MMR</div>",
+                f"<div class='nickname'>{pl}</div>"
+                f"<div class='mmr'>{d['mmr']:,} MMR</div>",
                 unsafe_allow_html=True
             )
-        with col3:
-            if hero_img:
-                st.image(f"data:image/png;base64,{hero_img}", width=70)
-            # selectbox de héroe solo en admin
+        with c3:
+            if hb: st.image(f"data:image/png;base64,{hb}", width=80)
+            st.markdown(f"<div class='hero-name'>{hero}</div>", unsafe_allow_html=True)
             if st.session_state.is_admin:
-                current = data.get("hero", "Selecciona Hero")
-                opts = ["Selecciona Hero"] + hero_names
-                idx = opts.index(current) if current in opts else 0
-                hero_sel = st.selectbox(
-                    "", opts,
-                    key=f"hero_select_{player}",
-                    index=idx
-                )
-                if hero_sel != "Selecciona Hero":
-                    st.session_state.players[player]["hero"] = hero_sel
-        with col4:
-            # botón seleccionar solo en admin
+                opts = ["Selecciona Hero"]+hero_names
+                cur = hero if hero in opts else "Selecciona Hero"
+                idx = opts.index(cur)
+                sel = st.selectbox("", opts, key=f"hero_sel_{pl}", index=idx)
+                if sel!="Selecciona Hero":
+                    st.session_state.players[pl]["hero"]=sel
+        with c4:
             if st.session_state.is_admin:
-                if st.button("Seleccionar", key=f"sel_{player}"):
-                    st.session_state.selected_player = player
-
-        # Cierra el contenedor HTML de la tarjeta
+                if st.button("Seleccionar", key=f"sel_{pl}"):
+                    st.session_state.selected_player=pl
+        # cierra tarjeta
         st.markdown("</div>", unsafe_allow_html=True)
 
-
 #############################################
-# Vista principal (para TODOS los usuarios)
+# Vista principal
 #############################################
-with st.container():
-    st.markdown("<div class='title'>Dota 2 Ñatabet</div>", unsafe_allow_html=True)
-
+st.markdown("<div class='title'>Dota 2 Ñatabet</div>", unsafe_allow_html=True)
 col1, col2 = st.columns(2)
 with col1:
     if st.session_state.radiant:
@@ -440,67 +392,36 @@ with col1:
 with col2:
     if st.session_state.dire:
         display_team("Dire", st.session_state.dire)
-
 if st.session_state.radiant and st.session_state.dire:
     diff = abs(
         sum(st.session_state.players[p]["mmr"] for p in st.session_state.radiant) -
         sum(st.session_state.players[p]["mmr"] for p in st.session_state.dire)
     )
-    with st.container():
-        st.markdown(f"<div class='mmr-difference'>Diferencia de MMR: {diff:,}</div>", unsafe_allow_html=True)
+    st.markdown(f"<div class='mmr-difference'>Diferencia de MMR: {diff:,}</div>", unsafe_allow_html=True)
 
 #############################################
-# Código para redes sociales (siempre visibles)
+# Redes sociales
 #############################################
-kick_img_path = SOCIAL_DIR / "kick.png"
-tiktok_img_path = SOCIAL_DIR / "tiktok.png"
-x_img_path = SOCIAL_DIR / "x.png"
-whatsapp_img_path = SOCIAL_DIR / "whatsapp.png"
-
-kick_img_base64 = to_base64(kick_img_path)
-tiktok_img_base64 = to_base64(tiktok_img_path)
-x_img_base64 = to_base64(x_img_path)
-whatsapp_img_base64 = to_base64(whatsapp_img_path)
-
-social_icons_html = f"""
-<div class="social-icons">
-    <a href="https://kick.com/yairlonelys" target="_blank">
-        <img src="data:image/png;base64,{kick_img_base64}" class="social-icon">
-    </a>
-    <a href="https://x.com/YairLonelys" target="_blank">
-        <img src="data:image/png;base64,{x_img_base64}" class="social-icon">
-    </a>
-    <a href="https://www.tiktok.com/@yairlonelyss" target="_blank">
-        <img src="data:image/png;base64,{tiktok_img_base64}" class="social-icon">
-    </a>
+for name, url, img in [
+    ("kick","https://kick.com/yairlonelys","kick.png"),
+    ("x","https://x.com/YairLonelys","x.png"),
+    ("tiktok","https://www.tiktok.com/@yairlonelyss","tiktok.png")
+]:
+    b = to_base64(SOCIAL_DIR/img)
+    st.markdown(
+        f"<a href='{url}' target='_blank'>"
+        f"<img src='data:image/png;base64,{b}' class='social-icon'></a>",
+        unsafe_allow_html=True
+    )
+wh = to_base64(SOCIAL_DIR/"whatsapp.png")
+st.markdown(f"""
+<div style='position:fixed;bottom:20px;left:20px;z-index:1000;'>
+  <a href='https://wa.me/qr/4FQFJOIBKQXFP1' target='_blank'>
+    <img src='data:image/png;base64,{wh}' width='200'
+         style='border-radius:12px;box-shadow:0 4px 12px rgba(0,0,0,0.3);'>
+  </a>
 </div>
-"""
-st.markdown(social_icons_html, unsafe_allow_html=True)
-
-whatsapp_html = f"""
-<div style="
-    position: fixed;
-    bottom: 20px;
-    left: 20px;
-    z-index: 1000;
-    transition: transform 0.3s;
-">
-    <a href="https://wa.me/qr/4FQFJOIBKQXFP1" target="_blank">
-        <img 
-            src="data:image/png;base64,{whatsapp_img_base64}" 
-            width="200"
-            style="
-                border-radius: 12px;
-                box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-                transition: transform 0.3s;
-            "
-            onmouseover="this.style.transform='scale(1.05)'"
-            onmouseout="this.style.transform='scale(1)'"
-        >
-    </a>
-</div>
-"""
-st.markdown(whatsapp_html, unsafe_allow_html=True)
+""", unsafe_allow_html=True)
 
 
 
