@@ -305,14 +305,14 @@ if st.session_state.is_admin:
                 combo_list.sort(key=lambda x: x[2])
                 st.session_state.combinations = combo_list[:10]
                 st.session_state.current_combo = 0
+                def apply_combo():
+                    if st.session_state.combinations:
+                        radiant, dire, _ = st.session_state.combinations[st.session_state.current_combo]
+                        st.session_state.radiant = radiant
+                        st.session_state.dire = dire
                 apply_combo()
                 save_balanced_table(st.session_state.radiant, st.session_state.dire)
                 st.success(f"¡Equipos balanceados ({len(st.session_state.radiant)}v{len(st.session_state.dire)})!")
-            def apply_combo():
-                if st.session_state.combinations:
-                    radiant, dire, _ = st.session_state.combinations[st.session_state.current_combo]
-                    st.session_state.radiant = radiant
-                    st.session_state.dire = dire
             balanced_shuffle()
         if st.button("🧨 Eliminar todos los jugadores", key="delete_all"):
             if st.checkbox("⚠️ ¿Estás SEGURO?", key="confirm_delete"):
@@ -334,6 +334,8 @@ if st.session_state.is_admin:
                         st.session_state.dire.remove(st.session_state.selected_player)
                     del st.session_state.players[st.session_state.selected_player]
                     st.session_state.selected_player = None
+                    # Actualizamos la DB tras quitar al jugador
+                    save_balanced_table(st.session_state.radiant, st.session_state.dire)
         with col_btn2:
             if st.button("🔄 Cambiar de Equipo", disabled=not st.session_state.selected_player, key="swap_team"):
                 if st.session_state.selected_player:
@@ -343,6 +345,8 @@ if st.session_state.is_admin:
                     else:
                         st.session_state.dire.remove(st.session_state.selected_player)
                         st.session_state.radiant.append(st.session_state.selected_player)
+                    # Actualizamos la DB tras cambiar el equipo
+                    save_balanced_table(st.session_state.radiant, st.session_state.dire)
         with col_btn3:
             if st.session_state.combinations:
                 st.caption(f"Combinación {st.session_state.current_combo + 1}/{len(st.session_state.combinations)}")
