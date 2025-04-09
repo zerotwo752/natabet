@@ -172,9 +172,9 @@ def load_balanced_table():
 
 init_db()
 
-############################################
+#############################################
 # Inicialización de estado
-############################################
+#############################################
 if 'is_admin' not in st.session_state:
     st.session_state.is_admin = False
 if 'players' not in st.session_state:
@@ -380,12 +380,12 @@ def display_team(team_name, team_members):
         if player not in st.session_state.players:
             continue
         player_data = st.session_state.players[player]
-        img_path = IMAGES_DIR / player_data["medal"]
-        img_bytes = to_base64(img_path) if img_path.exists() else None
-        is_selected = player == st.session_state.selected_player
-        border_color = "#FFD700" if is_selected else "transparent"
-        col_a, col_b = st.columns([1, 4])
-        with col_a:
+        # Creamos dos columnas principales: izquierda para la medalla y derecha para la info del jugador
+        col_image, col_details = st.columns([1, 4])
+        with col_image:
+            img_path = IMAGES_DIR / player_data["medal"]
+            img_bytes = to_base64(img_path) if img_path.exists() else None
+            border_color = "#FFD700" if player == st.session_state.selected_player else "transparent"
             if img_bytes:
                 st.markdown(
                     f"""<img src="data:image/png;base64,{img_bytes}" width="50"
@@ -394,29 +394,9 @@ def display_team(team_name, team_members):
                 )
             else:
                 st.error(f"Imagen no encontrada: {player_data['medal']}")
-        with col_b:
-            html_player = f"""
-            <div class="player-box">
-                <span>{player} ({player_data['mmr']:,} MMR)</span>
-            </div>
-            """
-            st.markdown(html_player, unsafe_allow_html=True)
-            if st.session_state.is_admin:
-                # Creamos dos columnas para el botón y el select sin anidar columnas adicionales
-                col_admin = st.columns([1, 2])
-                if col_admin[0].button("Seleccionar", key=f"btn_{player}"):
-                    st.session_state.selected_player = player
-                current_hero = player_data.get("hero", "Selecciona Hero")
-                hero_option = col_admin[1].selectbox(
-                    "Hero", ["Selecciona Hero"] + hero_names,
-                    index=(["Selecciona Hero"] + hero_names).index(current_hero)
-                          if current_hero in (["Selecciona Hero"] + hero_names) else 0,
-                    key=f"hero_select_{player}"
-                )
-                if hero_option != "Selecciona Hero":
-                    st.session_state.players[player]["hero"] = hero_option
-            if player_data.get("hero"):
-                # Busca la imagen del héroe en SOCIAL_DIR
+        with col_details:
+            # Mostramos la imagen del héroe encima de la caja, si existe un héroe seleccionado
+            if player_data.get("hero") and player_data.get("hero") != "Selecciona Hero":
                 hero_img_path = SOCIAL_DIR / f"{player_data['hero']}.png"
                 hero_img_bytes = to_base64(hero_img_path) if hero_img_path.exists() else None
                 if hero_img_bytes:
@@ -427,7 +407,29 @@ def display_team(team_name, team_members):
                     )
                 else:
                     st.error(f"Imagen de héroe no encontrada: {player_data['hero']}.png")
-
+            # Caja con información del jugador
+            st.markdown(
+                f"""<div class='player-box'>
+                <span>{player} ({player_data['mmr']:,} MMR)</span>
+                </div>""",
+                unsafe_allow_html=True
+            )
+            # Controles de administración en un contenedor independiente
+            if st.session_state.is_admin:
+                admin_container = st.container()
+                col_admin = admin_container.columns([1, 2])
+                if col_admin[0].button("Seleccionar", key=f"btn_{player}"):
+                    st.session_state.selected_player = player
+                current_hero = player_data.get("hero", "Selecciona Hero")
+                hero_option = col_admin[1].selectbox(
+                    "Hero",
+                    ["Selecciona Hero"] + hero_names,
+                    index=(["Selecciona Hero"] + hero_names).index(current_hero)
+                          if current_hero in (["Selecciona Hero"] + hero_names) else 0,
+                    key=f"hero_select_{player}"
+                )
+                if hero_option != "Selecciona Hero":
+                    st.session_state.players[player]["hero"] = hero_option
 
 #############################################
 # Vista principal (para TODOS los usuarios)
@@ -503,6 +505,5 @@ whatsapp_html = f"""
 </div>
 """
 st.markdown(whatsapp_html, unsafe_allow_html=True)
-
 
 
