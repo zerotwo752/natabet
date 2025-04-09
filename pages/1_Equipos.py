@@ -410,51 +410,70 @@ def display_team(team_name, team_members):
     total_mmr = sum(st.session_state.players[p]["mmr"] for p in team_members if p in st.session_state.players)
     # Armar HTML con diseño estético del cuadro
     team_html = f"""
-<html>
-  <head>
-    <meta charset="utf-8">
-    <style>
-      .team-container {{
-          padding: 20px;
-          background-color: #272752;
-          border-radius: 10px;
-          margin: 20px auto;
-          max-width: 1000px;  /* Aumentado de 900px a 1000px */
-          width: 100%;
-      }}
-      .player-card {{
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          background-color: #1d1d45;
-          border: 2px solid #45aa44;
-          border-radius: 10px;
-          margin: 10px 0;
-          padding: 15px;
-          width: 100%;  /* Asegura que ocupe todo el ancho */
-          min-width: 800px;  /* Ancho mínimo para evitar compresión */
-      }}
-      .player-details {{
-          font-size: 24px;
-          color: #FFFFFF;
-          min-width: 200px;  /* Evita que el nombre del jugador se corte */
-      }}
-      .hero-name {{
-          font-size: 24px;
-          color: #FFFFFF;
-          font-style: italic;
-          max-width: 300px;  /* Limita el ancho del nombre del héroe */
-          overflow: hidden;
-          text-overflow: ellipsis;  /* Añade puntos suspensivos si es muy largo */
-          white-space: nowrap;
-      }}
-    </style>
-  </head>
-  <body>
-    <!-- Resto del HTML -->
-  </body>
-</html>
-"""
+    <html>
+      <head>
+        <meta charset="utf-8">
+        <style>
+          .team-container {{
+              padding: 20px;
+              background-color: #272752;
+              border-radius: 10px;
+              margin: 20px auto;
+              max-width: 1800px;
+          }}
+          .team-title {{
+              text-align: center;
+              font-size: 36px;
+              font-weight: bold;
+              color: #FFD700;
+              margin-bottom: 20px;
+          }}
+          .player-card {{
+              display: flex;
+              justify-content: space-between;
+              align-items: center;
+              background-color: #1d1d45;
+              border: 2px solid #45aa44;
+              border-radius: 10px;
+              margin: 10px 0;
+              padding: 15px;
+
+
+          }}
+          .player-info {{
+              display: flex;
+              align-items: center;
+          }}
+          .player-info img {{
+              border-radius: 50%;
+              margin-right: 15px;
+              width: 70px;
+              height: 70px;
+          }}
+          .player-details {{
+              font-size: 24px;
+              color: #FFFFFF;
+          }}
+          .hero-info {{
+              display: flex;
+              align-items: center;
+          }}
+          .hero-info img {{
+              width: 60px;
+              height: 60px;
+              margin-right: 10px;
+          }}
+          .hero-name {{
+              font-size: 24px;
+              color: #FFFFFF;
+              font-style: italic;
+          }}
+        </style>
+      </head>
+      <body>
+        <div class="team-container">
+          <div class="team-title">{team_name} (MMR: {total_mmr:,})</div>
+    """
     # Por cada jugador, incluir tarjeta con medalla y datos
     for player in team_members:
         if player not in st.session_state.players:
