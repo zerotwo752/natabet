@@ -139,7 +139,7 @@ st.markdown(f"""
         background-color: #444;
     }}
 
-    /* Para Firefox: aplicar estilos a contenedores que tengan scroll */
+    /* Para Firefox: estilos en contenedores con scroll */
     .team-container {{
         scrollbar-width: auto;
         scrollbar-color: #555 #2c2c2c;
@@ -438,12 +438,13 @@ def display_team(team_name, team_members):
         <meta charset="utf-8">
         <style>
           .team-container {{
-              /* Fijamos un ancho fijo para evitar scroll horizontal */
+              /* Se fija un ancho de 1600px y se asegura que el contenido sea visible */
               width: 1600px;
               margin: 20px auto;
               padding: 20px;
               background-color: #272752;
               border-radius: 10px;
+              overflow: visible;
           }}
           .team-title {{
               text-align: center;
@@ -625,4 +626,3 @@ whatsapp_html = f"""
 </div>
 """
 st.markdown(whatsapp_html, unsafe_allow_html=True)
-
