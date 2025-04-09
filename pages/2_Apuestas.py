@@ -1,14 +1,15 @@
 import os
 import psycopg2
+import streamlit as st
 
 DATABASE_URL = os.environ.get("DATABASE_URL")
 if DATABASE_URL is None:
-    print("DATABASE_URL no está definida")
+    st.error("DATABASE_URL no está definida")
 else:
-    print("Conectando a:", DATABASE_URL)
+    st.write("Conectando a:", DATABASE_URL)
     try:
         conn = psycopg2.connect(DATABASE_URL)
-        print("Conexión exitosa")
+        st.success("Conexión exitosa")
         conn.close()
     except Exception as e:
-        print("Error de conexión:", e)
+        st.error(f"Error de conexión: {e}")
