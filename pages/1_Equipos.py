@@ -508,9 +508,9 @@ def display_team(team_name, team_members):
               margin-left: 20px;
           }}
           .hero-info img {{
-              width: 40px;   /* Tamaño de la imagen del héroe, ajústalo aquí */
-              height: 40px;  /* Tamaño de la imagen del héroe, ajústalo aquí */
-              margin-right: 5px;
+              width: 60px;   /* Tamaño de la imagen del héroe, ajústalo aquí */
+              height: 60px;  /* Tamaño de la imagen del héroe, ajústalo aquí */
+              margin-right: 10px;
           }}
           .hero-name {{
               font-size: 22px;  /* Tamaño de fuente del nombre del héroe, ajústalo aquí */
