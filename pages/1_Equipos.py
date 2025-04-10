@@ -7,6 +7,9 @@ import os
 import psycopg2
 import streamlit.components.v1 as components
 
+# Configuración de la página en modo "wide"
+st.set_page_config(layout="wide")
+
 #############################################
 # Función para convertir imágenes a Base64
 #############################################
@@ -120,6 +123,29 @@ st.markdown(f"""
     }}
     .social-icon:hover {{
         transform: scale(1.1);
+    }}
+
+    /* Personalización de scrollbars para navegadores Webkit */
+    ::-webkit-scrollbar {{
+        width: 20px;
+        height: 20px;
+    }}
+    ::-webkit-scrollbar-track {{
+        background: #2c2c2c;
+    }}
+    ::-webkit-scrollbar-thumb {{
+        background-color: #555;
+        border-radius: 10px;
+        border: 3px solid #2c2c2c;
+    }}
+    ::-webkit-scrollbar-thumb:hover {{
+        background-color: #444;
+    }}
+
+    /* Para Firefox: estilos en contenedores con scroll */
+    .team-container {{
+        scrollbar-width: auto;
+        scrollbar-color: #555 #2c2c2c;
     }}
     </style>
     """, unsafe_allow_html=True)
@@ -241,11 +267,13 @@ def get_medal(mmr: int) -> str:
 # Función para buscar imagen de jugador (en YAPE)
 #############################################
 def find_player_image(player_name: str) -> str:
+    # Construye un nombre de archivo limpio basado en el nombre del jugador
     clean_name = ''.join(c if c.isalnum() else '_' for c in player_name.lower())
     for ext in ['.jpg', '.jpeg', '.png']:
         img_path = YAPE_PATH / f"{clean_name}{ext}"
         if img_path.exists():
             return to_base64(img_path)
+    # Si no existe ninguna imagen para ese jugador, se retorna la imagen default.
     return to_base64(YAPE_PATH / "default.jpg")
 
 #############################################
@@ -317,14 +345,12 @@ if st.session_state.is_admin:
         else:
             st.info("No hay jugadores para asignar héroe.")
         st.divider()
-        # Quitar Jugador (nueva sección)
+        # Quitar Jugador
         st.header("Quitar Jugador")
         if st.session_state.players:
             selected_player_remove = st.selectbox("Seleccionar Jugador a Quitar", list(st.session_state.players.keys()), key="remove_player_sel")
             if st.button("Quitar Jugador"):
-                # Eliminar jugador del diccionario
                 del st.session_state.players[selected_player_remove]
-                # Eliminar de equipos si está asignado
                 if selected_player_remove in st.session_state.radiant:
                     st.session_state.radiant.remove(selected_player_remove)
                 if selected_player_remove in st.session_state.dire:
@@ -332,14 +358,13 @@ if st.session_state.is_admin:
                 save_balanced_table(st.session_state.radiant, st.session_state.dire)
                 st.success(f"Jugador {selected_player_remove} eliminado")
         else:
-            st.info("No hay jugadores para quitar.")
+            st.info("No hay jugadores aún.")
         st.divider()
-        # Cambiar de Equipo (nueva sección)
+        # Cambiar de Equipo
         st.header("Cambiar de Equipo")
         if st.session_state.players:
             selected_player_swap = st.selectbox("Seleccionar Jugador para Cambiar de Equipo", list(st.session_state.players.keys()), key="swap_player_sel")
             if st.button("Cambiar de Equipo"):
-                # Si el jugador está en radiant, mover a dire y viceversa
                 if selected_player_swap in st.session_state.radiant:
                     st.session_state.radiant.remove(selected_player_swap)
                     st.session_state.dire.append(selected_player_swap)
@@ -404,22 +429,26 @@ if st.session_state.is_admin:
                 st.caption(f"Combinación {st.session_state.current_combo + 1}/{len(st.session_state.combinations)}")
 
 #############################################
-# Función para mostrar equipos (vista de usuarios normales)
+# Función para mostrar equipos (vista de usuarios)
 #############################################
 def display_team(team_name, team_members):
-    total_mmr = sum(st.session_state.players[p]["mmr"] for p in team_members if p in st.session_state.players)
-    # Armar HTML con diseño estético del cuadro
+    total_mmr = sum(
+        st.session_state.players[p]["mmr"]
+        for p in team_members
+        if p in st.session_state.players
+    )
     team_html = f"""
     <html>
       <head>
         <meta charset="utf-8">
         <style>
           .team-container {{
+              width: 800px;
+              margin: 20px auto;
               padding: 20px;
               background-color: #272752;
               border-radius: 10px;
-              margin: 20px auto;
-              max-width: 900px;
+              overflow: visible;
           }}
           .team-title {{
               text-align: center;
@@ -430,7 +459,6 @@ def display_team(team_name, team_members):
           }}
           .player-card {{
               display: flex;
-              justify-content: space-between;
               align-items: center;
               background-color: #1d1d45;
               border: 2px solid #45aa44;
@@ -442,7 +470,7 @@ def display_team(team_name, team_members):
               display: flex;
               align-items: center;
           }}
-          .player-info img {{
+          .player-info img.medalla {{
               border-radius: 50%;
               margin-right: 15px;
               width: 70px;
@@ -455,6 +483,7 @@ def display_team(team_name, team_members):
           .hero-info {{
               display: flex;
               align-items: center;
+              margin-left: 20px;
           }}
           .hero-info img {{
               width: 60px;
@@ -466,19 +495,62 @@ def display_team(team_name, team_members):
               color: #FFFFFF;
               font-style: italic;
           }}
+          /* Estilos para tooltip */
+          .tooltip {{
+              position: relative;
+              display: inline-block;
+          }}
+          .tooltip .tooltiptext {{
+              visibility: hidden;
+              width: auto;
+              background-color: rgba(0,0,0,0.8);
+              padding: 5px;
+              border-radius: 6px;
+              position: absolute;
+              z-index: 1;
+              bottom: 125%;
+              left: 50%;
+              transform: translateX(-50%);
+              opacity: 0;
+              transition: opacity 0.3s;
+          }}
+          .tooltip:hover .tooltiptext {{
+              visibility: visible;
+              opacity: 1;
+          }}
+
+          /* Scrollbar personalizado para navegadores Webkit */
+          ::-webkit-scrollbar {{
+              width: 20px;
+              height: 20px;
+          }}
+          ::-webkit-scrollbar-track {{
+              background: #2c2c2c;
+          }}
+          ::-webkit-scrollbar-thumb {{
+              background-color: #555;
+              border-radius: 10px;
+              border: 3px solid #2c2c2c;
+          }}
+          ::-webkit-scrollbar-thumb:hover {{
+              background-color: #444;
+          }}
         </style>
       </head>
       <body>
         <div class="team-container">
           <div class="team-title">{team_name} (MMR: {total_mmr:,})</div>
     """
-    # Por cada jugador, incluir tarjeta con medalla y datos
     for player in team_members:
         if player not in st.session_state.players:
             continue
         player_data = st.session_state.players[player]
         medal_img_path = IMAGES_DIR / player_data["medal"]
         medal_img = to_base64(medal_img_path) if medal_img_path.exists() else ""
+        # Obtener la imagen del jugador desde la carpeta "yape"
+        tooltip_img = find_player_image(player)
+        tooltip_html = f"""<span class="tooltiptext"><img src="data:image/png;base64,{tooltip_img}" style="width:200px;"></span>"""
+        # Información del héroe
         if player_data.get("hero") and player_data.get("hero") != "Selecciona Hero":
             hero_img_path = SOCIAL_DIR / f"{player_data['hero']}.png"
             hero_img = to_base64(hero_img_path) if hero_img_path.exists() else ""
@@ -490,16 +562,20 @@ def display_team(team_name, team_members):
             """
         else:
             hero_info = """<div class="hero-info"><span class="hero-name">Sin héroe</span></div>"""
+        # Se envuelve la tarjeta en un contenedor tooltip para mostrar la imagen al hacer hover.
         card = f"""
-          <div class="player-card">
-              <div class="player-info">
-                  <img src="data:image/png;base64,{medal_img}" alt="Medalla">
-                  <div class="player-details">
-                      <div>{player}</div>
-                      <div>{player_data['mmr']:,} MMR</div>
-                  </div>
-              </div>
-              {hero_info}
+          <div class="tooltip">
+            <div class="player-card">
+                <div class="player-info">
+                    <img class="medalla" src="data:image/png;base64,{medal_img}" alt="Medalla">
+                    <div class="player-details">
+                        <div>{player}</div>
+                        <div>{player_data['mmr']:,} MMR</div>
+                    </div>
+                    {hero_info}
+                </div>
+            </div>
+            {tooltip_html}
           </div>
         """
         team_html += card
@@ -508,7 +584,7 @@ def display_team(team_name, team_members):
       </body>
     </html>
     """
-    components.html(team_html, height=800, scrolling=True)
+    components.html(team_html, height=900, width=1600, scrolling=True)
 
 #############################################
 # Vista principal (para TODOS los usuarios)
@@ -584,3 +660,5 @@ whatsapp_html = f"""
 </div>
 """
 st.markdown(whatsapp_html, unsafe_allow_html=True)
+
+
