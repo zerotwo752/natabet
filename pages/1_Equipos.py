@@ -51,7 +51,7 @@ hero_names = [
 #############################################
 # Definir y convertir la imagen de fondo (pato)
 #############################################
-pato_img_path = SOCIAL_DIR / "pato.png"
+pato_img_path = SOCIAL_DIR / "pato.gif"
 pato_img_base64 = to_base64(pato_img_path)
 
 #############################################
@@ -60,7 +60,7 @@ pato_img_base64 = to_base64(pato_img_path)
 st.markdown(f"""
     <style>
     .stApp {{
-        background-image: url("data:image/png;base64,{pato_img_base64}");
+        background-image: url("data:image/gif;base64,{pato_img_base64}");
         background-size: cover;
         background-position: center 70%;
         background-attachment: fixed;
