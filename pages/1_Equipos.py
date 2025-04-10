@@ -59,20 +59,6 @@ pato_img_base64 = to_base64(pato_img_path)
 #############################################
 st.markdown(f"""
     <style>
-  /* Hacemos que el contenedor apile sus hijos en columna */
-  .team-container {
-    display: flex;
-    flex-direction: column;
-  }
-  /* Cada tooltip (que envuelve a la tarjeta) debe ocupar todo el ancho y comportarse como bloque */
-  .tooltip {
-    display: block;
-    width: 100%;
-  }
-  /* Y la tarjeta de jugador quepa al 100% */
-  .player-card {
-    width: 100%;
-  }
     .stApp {{
         background-image: url("data:image/png;base64,{pato_img_base64}");
         background-size: cover;
@@ -674,5 +660,6 @@ whatsapp_html = f"""
 </div>
 """
 st.markdown(whatsapp_html, unsafe_allow_html=True)
+
 
 
