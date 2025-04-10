@@ -235,7 +235,7 @@ if "db_loaded" not in st.session_state:
 def get_medal(mmr: int) -> str:
     if mmr < 770:
         stars = min(5, 1 + mmr // 150)
-        return f"heraldo{stars}.png"
+        return f"heraldo{stars}.png"   # Ajusta la imagen de la medalla aquí si es necesario.
     elif mmr < 1540:
         stars = min(5, 1 + (mmr - 770) // 160)
         return f"guardian{stars}.png"
@@ -437,8 +437,12 @@ def display_team(team_name, team_members):
         for p in team_members
         if p in st.session_state.players
     )
-    # A continuación definimos el CSS para las tarjetas con tamaño fijo y disposición vertical.
-    # Puedes modificar fixed_width y fixed_height para ajustar los tamaños de las tarjetas.
+    # Se definen las variables de tamaño:
+    # Cambia estos valores para ajustar el tamaño de las tarjetas:
+    card_width = "400px"   # Tamaño del ancho de cada tarjeta (ajústalo aquí)
+    card_height = "120px"  # Tamaño de la altura de cada tarjeta (ajústalo aquí)
+
+    # CSS modificado para las tarjetas con mayor altura, fuente más grande y posición de héroe ajustada.
     team_html = f"""
     <html>
       <head>
@@ -462,10 +466,10 @@ def display_team(team_name, team_members):
               color: #FFD700;
               margin-bottom: 20px;
           }}
-          /* Definición de variables para el tamaño fijo */
+          /* Tarjetas de jugador con tamaño fijo (ajusta card_width y card_height arriba) */
           .player-card {{
-              width: 400px;       /* <-- Valor fijo que puedes modificar */
-              height: 80px;       /* <-- Valor fijo que puedes modificar */
+              width: {card_width};
+              height: {card_height};
               display: flex;
               align-items: center;
               justify-content: space-between;
@@ -480,43 +484,43 @@ def display_team(team_name, team_members):
           .player-info {{
               display: flex;
               align-items: center;
-              width: 100%;
+              flex-grow: 1;
           }}
           .player-info img.medalla {{
               border-radius: 50%;
               margin-right: 10px;
-              width: 50px;
-              height: 50px;
+              width: 50px;  /* Tamaño de la medalla, ajústalo aquí */
+              height: 50px; /* Tamaño de la medalla, ajústalo aquí */
           }}
           .player-details {{
               display: flex;
               flex-direction: column;
               justify-content: center;
-              flex-grow: 1;
-              font-size: 18px;
+              /* Aumenta la fuente para nickname y MMR (ajusta estos valores) */
+              font-size: 22px;
               color: #FFFFFF;
               overflow: hidden;
           }}
+          /* Posicionar la información del héroe junto a la información del jugador */
           .hero-info {{
               display: flex;
               align-items: center;
-              justify-content: flex-end;
-              min-width: 120px;
+              margin-left: 20px;
           }}
           .hero-info img {{
-              width: 40px;
-              height: 40px;
+              width: 40px;   /* Tamaño de la imagen del héroe, ajústalo aquí */
+              height: 40px;  /* Tamaño de la imagen del héroe, ajústalo aquí */
               margin-right: 5px;
           }}
           .hero-name {{
-              font-size: 18px;
+              font-size: 22px;  /* Tamaño de fuente del nombre del héroe, ajústalo aquí */
               color: #FFFFFF;
               font-style: italic;
               white-space: nowrap;
               overflow: hidden;
               text-overflow: ellipsis;
           }}
-          /* Tooltip para imagen del jugador */
+          /* Estilos para tooltip */
           .tooltip {{
               position: relative;
               display: inline-block;
@@ -529,11 +533,17 @@ def display_team(team_name, team_members):
               border-radius: 6px;
               position: absolute;
               z-index: 1;
+              /* Posición por defecto: se muestra arriba */
               bottom: 110%;
               left: 50%;
               transform: translateX(-50%);
               opacity: 0;
               transition: opacity 0.3s;
+          }}
+          /* Clase para mostrar tooltip abajo (para jugadores 1 y 2) */
+          .tooltip.tooltip-bottom .tooltiptext {{
+              top: 110%;  /* Muestra la imagen en la parte inferior */
+              bottom: auto;
           }}
           .tooltip:hover .tooltiptext {{
               visibility: visible;
@@ -561,14 +571,17 @@ def display_team(team_name, team_members):
         <div class="team-container">
           <div class="team-title">{team_name} (MMR: {total_mmr:,})</div>
     """
-    for player in team_members:
+    # Recorremos la lista de jugadores; usaremos enumerate para identificar el índice y así aplicar tooltip-bottom a los dos primeros.
+    for idx, player in enumerate(team_members):
         if player not in st.session_state.players:
             continue
         player_data = st.session_state.players[player]
         medal_img_path = IMAGES_DIR / player_data["medal"]
         medal_img = to_base64(medal_img_path) if medal_img_path.exists() else ""
-        # Tooltip: Se obtiene la imagen del jugador (carpeta "yape"). Si no se encuentra se usa "default"
+        # Tooltip: se obtiene la imagen del jugador (carpeta "yape"). Si no se encuentra, se usa "default"
         tooltip_img = find_player_image(player)
+        # Si es uno de los dos primeros jugadores (índice 0 o 1) se usa tooltip-bottom.
+        tooltip_class = "tooltip tooltip-bottom" if idx < 2 else "tooltip"
         tooltip_html = f"""<span class="tooltiptext"><img src="data:image/png;base64,{tooltip_img}" style="width:200px;"></span>"""
         # Información del héroe
         if player_data.get("hero") and player_data.get("hero") != "Selecciona Hero":
@@ -584,7 +597,7 @@ def display_team(team_name, team_members):
             hero_info = """<div class="hero-info"><span class="hero-name">Sin héroe</span></div>"""
         # Cada tarjeta se envuelve en un contenedor tooltip para mostrar la imagen al pasar el cursor.
         card = f"""
-          <div class="tooltip">
+          <div class="{tooltip_class}">
             <div class="player-card">
                 <div class="player-info">
                     <img class="medalla" src="data:image/png;base64,{medal_img}" alt="Medalla">
@@ -680,3 +693,4 @@ whatsapp_html = f"""
 </div>
 """
 st.markdown(whatsapp_html, unsafe_allow_html=True)
+
