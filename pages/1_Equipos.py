@@ -439,7 +439,7 @@ def display_team(team_name, team_members):
     )
     # Se definen las variables de tamaño:
     # Cambia estos valores para ajustar el tamaño de las tarjetas:
-    card_width = "400px"   # Tamaño del ancho de cada tarjeta (ajústalo aquí)
+    card_width = "500px"   # Tamaño del ancho de cada tarjeta (ajústalo aquí)
     card_height = "120px"  # Tamaño de la altura de cada tarjeta (ajústalo aquí)
 
     # CSS modificado para las tarjetas con mayor altura, fuente más grande y posición de héroe ajustada.
