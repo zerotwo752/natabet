@@ -452,7 +452,7 @@ def display_team(team_name, team_members):
               width: 800px;
               margin: 20px auto;
               padding: 20px;
-              background-color: #272752;
+              background-color: transparent;
               border-radius: 10px;
               overflow: visible;
               display: flex;
