@@ -95,7 +95,7 @@ st.markdown(f"""
     }}
     .title {{
         font-size: 32px;
-        color: #FFD700;
+        color: white;
         font-weight: bold;
         text-align: center;
         text-shadow:
@@ -106,7 +106,7 @@ st.markdown(f"""
     }}
     .team-title {{
         font-size: 28px;
-        color: #FFFFFF;
+        color: white;
         font-weight: bold;
         text-shadow:
         -1px -1px 0 purple,
