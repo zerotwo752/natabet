@@ -98,11 +98,21 @@ st.markdown(f"""
         color: #FFD700;
         font-weight: bold;
         text-align: center;
+        text-shadow:
+        -1px -1px 0 purple,
+         1px -1px 0 purple,
+        -1px  1px 0 purple,
+         1px  1px 0 purple;
     }}
     .team-title {{
         font-size: 28px;
         color: #FFFFFF;
         font-weight: bold;
+        text-shadow:
+        -1px -1px 0 purple,
+         1px -1px 0 purple,
+        -1px  1px 0 purple,
+         1px  1px 0 purple;
     }}
     .social-icons {{
         position: fixed;
