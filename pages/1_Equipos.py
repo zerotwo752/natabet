@@ -475,6 +475,11 @@ def display_team(team_name, team_members):
               font-weight: bold;
               color: white;
               margin-bottom: 20px;
+              text-shadow: 
+                  -1px -1px 0 purple,
+                   1px -1px 0 purple,
+                  -1px  1px 0 purple,
+                   1px  1px 0 purple;
           }}
           /* Tarjetas de jugador con tamaño fijo (ajusta card_width y card_height arriba) */
           .player-card {{
