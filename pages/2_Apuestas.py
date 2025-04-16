@@ -125,7 +125,7 @@ st.markdown(f"""
         display: flex;
         align-items: center;
         justify-content: space-between;
-        background-color: rgba(0, 0, 0, 0.5);
+        background-color: transparent;
         padding: 0 20px;
         height: 60px;
         border-radius: 10px;
