@@ -88,7 +88,7 @@ st.markdown(f"""
         font-size: 16px;
     }}
     .mmr-difference {{
-        font-size: 24px;
+        font-size: 35px;
         color: #FFFFFF;
         font-weight: bold;
         text-align: center;
