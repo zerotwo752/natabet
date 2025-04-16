@@ -176,7 +176,7 @@ with st.sidebar.expander("ADMIN (LOGIN)", expanded=True):
 # Contenido principal
 #############################################
 st.markdown("<h2 style='text-align: center; color: #FFFFFF;'>Bienvenido a ÑATABET</h2>", unsafe_allow_html=True)
-st.markdown("<p style='text-align: center; color: #FFFFFF;'>Esta es la sección con el fondo, header y la funcionalidad de Yape. El resto de opciones se han eliminado.</p>", unsafe_allow_html=True)
+st.markdown("<p style='text-align: center; color: #FFFFFF;'>eliminado.</p>", unsafe_allow_html=True)
 
 
 
