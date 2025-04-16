@@ -208,7 +208,7 @@ def recalculate(df: pd.DataFrame) -> pd.DataFrame:
 
 with st.container():
     st.markdown("<h2 style='text-align: center; color: #FFFFFF;'>Bienvenido a ÑATABET</h2>", unsafe_allow_html=True)
-    st.markdown("<p style='text-align: center; color: #FFFFFF;'>Completa la tabla como en tu hoja de cálculo.</p>", unsafe_allow_html=True)
+    st.markdown("<p style='text-align: center; color: #FFFFFF;'>p>", unsafe_allow_html=True)
     
     with st.expander("Tabla de Apuestas", expanded=True):
         st.markdown("<div class='tabla-container'>", unsafe_allow_html=True)
