@@ -120,7 +120,8 @@ st.markdown(f"""
          1px  1px 0 purple;
     }}
 
-    /* Nueva sección para el header (logo + texto + íconos) */
+    /* Sección header: logo + texto + redes sociales.
+       Para transparencia, se usa background-color: transparent; */
     .header-container {{
         display: flex;
         align-items: center;
@@ -155,7 +156,7 @@ st.markdown(f"""
         align-items: center;
     }}
     .social-icon {{
-        width: 60px !important;
+        width: 45px !important;
         height: auto;
         margin-left: 12px;
         cursor: pointer;
@@ -625,7 +626,6 @@ def display_team(team_name, team_members):
             """
         else:
             hero_info = """<div class="hero-info"><span class="hero-name">Sin héroe</span></div>"""
-
         card = f"""
           <div class="{tooltip_class}">
             <div class="player-card">
@@ -653,7 +653,7 @@ def display_team(team_name, team_members):
 # -- INICIO DE LA APP --
 #############################################
 
-# 1) Logo "titulo.png" + Texto "ÑATABET" + Íconos Kick/X/TikTok en la misma barra
+# 1) Header: logo (titulo.png) + texto "ÑATABET" + íconos de redes sociales
 kick_img_path = SOCIAL_DIR / "kick.png"
 tiktok_img_path = SOCIAL_DIR / "tiktok.png"
 x_img_path = SOCIAL_DIR / "x.png"
@@ -690,14 +690,18 @@ st.markdown(header_html, unsafe_allow_html=True)
 with st.container():
     st.markdown("<div class='title'>Dota 2 Ñatabet</div>", unsafe_allow_html=True)
 
-# 3) Mostrar equipos
-col1, col2 = st.columns(2)
+# 3) Mostrar equipos y, a la derecha, una imagen grande
+# Se usa un layout de 3 columnas. La tercera mostrará la imagen grande "yair.jpg" de la carpeta YAPE.
+col1, col2, col3 = st.columns([1, 1, 1.2])
 with col1:
     if st.session_state.radiant:
         display_team("Radiant", st.session_state.radiant)
 with col2:
     if st.session_state.dire:
         display_team("Dire", st.session_state.dire)
+with col3:
+    # Muestra la imagen grande. Puedes ajustar el ancho de la imagen con el parámetro "use_column_width" o pasándole un ancho fijo.
+    st.image(str(YAPE_PATH / "yair.jpg"), caption="Imagen Grande", use_column_width=True)
 
 # 4) Diferencia de MMR (solo si Radiant y Dire tienen jugadores)
 if st.session_state.radiant and st.session_state.dire:
