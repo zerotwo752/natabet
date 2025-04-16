@@ -119,20 +119,45 @@ st.markdown(f"""
         -1px  1px 0 purple,
          1px  1px 0 purple;
     }}
-    .social-icons {{
-        position: fixed;
-        top: 60px;
-        left: 50px;
+
+    /* Nueva sección para el header (logo + texto + íconos) */
+    .header-container {{
         display: flex;
         align-items: center;
-        z-index: 1000;
-        background-color: rgba(0, 0, 0, 0.5);
+        justify-content: space-between;
+        background-color: transparent;
+        padding: 0 20px;
+        height: 60px;
         border-radius: 10px;
-        padding: 5px;
+        margin: 10px;
+    }}
+    .logo-and-text {{
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }}
+    .logo {{
+        width: 50px;
+        height: auto;
+    }}
+    .brand-name {{
+        font-size: 24px;
+        font-weight: bold;
+        color: #FFFFFF;
+        text-shadow:
+        -1px -1px 0 purple,
+         1px -1px 0 purple,
+        -1px  1px 0 purple,
+         1px  1px 0 purple;
+    }}
+    .right-links {{
+        display: flex;
+        align-items: center;
     }}
     .social-icon {{
-        width: 50px !important;
+        width: 60px !important;
         height: auto;
+        margin-left: 12px;
         cursor: pointer;
         transition: transform 0.2s;
     }}
@@ -250,7 +275,7 @@ if "db_loaded" not in st.session_state:
 def get_medal(mmr: int) -> str:
     if mmr < 770:
         stars = min(5, 1 + mmr // 150)
-        return f"heraldo{stars}.png"   # Ajusta la imagen de la medalla aquí si es necesario.
+        return f"heraldo{stars}.png"
     elif mmr < 1540:
         stars = min(5, 1 + (mmr - 770) // 160)
         return f"guardian{stars}.png"
@@ -282,13 +307,11 @@ def get_medal(mmr: int) -> str:
 # Función para buscar imagen de jugador (en YAPE)
 #############################################
 def find_player_image(player_name: str) -> str:
-    # Construye un nombre de archivo limpio basado en el nombre del jugador
     clean_name = ''.join(c if c.isalnum() else '_' for c in player_name.lower())
     for ext in ['.jpg', '.jpeg', '.png']:
         img_path = YAPE_PATH / f"{clean_name}{ext}"
         if img_path.exists():
             return to_base64(img_path)
-    # Si no existe ninguna imagen para ese jugador, se retorna la imagen default.
     return to_base64(YAPE_PATH / "default.jpg")
 
 #############################################
@@ -452,12 +475,10 @@ def display_team(team_name, team_members):
         for p in team_members
         if p in st.session_state.players
     )
-    # Se definen las variables de tamaño:
-    # Cambia estos valores para ajustar el tamaño de las tarjetas:
-    card_width = "500px"   # Tamaño del ancho de cada tarjeta (ajústalo aquí)
-    card_height = "120px"  # Tamaño de la altura de cada tarjeta (ajústalo aquí)
+    # Ajusta el tamaño de las tarjetas:
+    card_width = "500px"
+    card_height = "120px"
 
-    # CSS modificado para las tarjetas con mayor altura, fuente más grande y posición de héroe ajustada.
     team_html = f"""
     <html>
       <head>
@@ -486,7 +507,6 @@ def display_team(team_name, team_members):
                   -1px  1px 0 purple,
                    1px  1px 0 purple;
           }}
-          /* Tarjetas de jugador con tamaño fijo (ajusta card_width y card_height arriba) */
           .player-card {{
               width: {card_width};
               height: {card_height};
@@ -509,38 +529,35 @@ def display_team(team_name, team_members):
           .player-info img.medalla {{
               border-radius: 50%;
               margin-right: 10px;
-              width: 50px;  /* Tamaño de la medalla, ajústalo aquí */
-              height: 50px; /* Tamaño de la medalla, ajústalo aquí */
+              width: 50px;
+              height: 50px;
           }}
           .player-details {{
               display: flex;
               flex-direction: column;
               justify-content: center;
-              /* Aumenta la fuente para nickname y MMR (ajusta estos valores) */
               font-size: 22px;
               color: #FFFFFF;
               overflow: hidden;
           }}
-          /* Posicionar la información del héroe junto a la información del jugador */
           .hero-info {{
               display: flex;
               align-items: center;
               margin-left: 20px;
           }}
           .hero-info img {{
-              width: 60px;   /* Tamaño de la imagen del héroe, ajústalo aquí */
-              height: 60px;  /* Tamaño de la imagen del héroe, ajústalo aquí */
+              width: 60px;
+              height: 60px;
               margin-right: 10px;
           }}
           .hero-name {{
-              font-size: 22px;  /* Tamaño de fuente del nombre del héroe, ajústalo aquí */
+              font-size: 22px;
               color: #FFFFFF;
               font-style: italic;
               white-space: nowrap;
               overflow: hidden;
               text-overflow: ellipsis;
           }}
-          /* Estilos para tooltip */
           .tooltip {{
               position: relative;
               display: inline-block;
@@ -553,23 +570,20 @@ def display_team(team_name, team_members):
               border-radius: 6px;
               position: absolute;
               z-index: 1;
-              /* Posición por defecto: se muestra arriba */
               bottom: 110%;
               left: 50%;
               transform: translateX(-50%);
               opacity: 0;
               transition: opacity 0.3s;
           }}
-          /* Clase para mostrar tooltip abajo (para jugadores 1 y 2) */
           .tooltip.tooltip-bottom .tooltiptext {{
-              top: 110%;  /* Muestra la imagen en la parte inferior */
+              top: 110%;
               bottom: auto;
           }}
           .tooltip:hover .tooltiptext {{
               visibility: visible;
               opacity: 1;
           }}
-          /* Estilos para scrollbar si llega a haber overflow */
           ::-webkit-scrollbar {{
               width: 20px;
               height: 20px;
@@ -591,19 +605,15 @@ def display_team(team_name, team_members):
         <div class="team-container">
           <div class="team-title">{team_name} (MMR: {total_mmr:,})</div>
     """
-    # Recorremos la lista de jugadores; usaremos enumerate para identificar el índice y así aplicar tooltip-bottom a los dos primeros.
     for idx, player in enumerate(team_members):
         if player not in st.session_state.players:
             continue
         player_data = st.session_state.players[player]
         medal_img_path = IMAGES_DIR / player_data["medal"]
         medal_img = to_base64(medal_img_path) if medal_img_path.exists() else ""
-        # Tooltip: se obtiene la imagen del jugador (carpeta "yape"). Si no se encuentra, se usa "default"
         tooltip_img = find_player_image(player)
-        # Si es uno de los dos primeros jugadores (índice 0 o 1) se usa tooltip-bottom.
         tooltip_class = "tooltip tooltip-bottom" if idx < 2 else "tooltip"
         tooltip_html = f"""<span class="tooltiptext"><img src="data:image/png;base64,{tooltip_img}" style="width:200px;"></span>"""
-        # Información del héroe
         if player_data.get("hero") and player_data.get("hero") != "Selecciona Hero":
             hero_img_path = SOCIAL_DIR / f"{player_data['hero']}.png"
             hero_img = to_base64(hero_img_path) if hero_img_path.exists() else ""
@@ -615,7 +625,7 @@ def display_team(team_name, team_members):
             """
         else:
             hero_info = """<div class="hero-info"><span class="hero-name">Sin héroe</span></div>"""
-        # Cada tarjeta se envuelve en un contenedor tooltip para mostrar la imagen al pasar el cursor.
+
         card = f"""
           <div class="{tooltip_class}">
             <div class="player-card">
@@ -640,11 +650,47 @@ def display_team(team_name, team_members):
     components.html(team_html, height=900, width=1600, scrolling=True)
 
 #############################################
-# Vista principal (para TODOS los usuarios)
+# -- INICIO DE LA APP --
 #############################################
+
+# 1) Logo "titulo.png" + Texto "ÑATABET" + Íconos Kick/X/TikTok en la misma barra
+kick_img_path = SOCIAL_DIR / "kick.png"
+tiktok_img_path = SOCIAL_DIR / "tiktok.png"
+x_img_path = SOCIAL_DIR / "x.png"
+
+kick_img_base64 = to_base64(kick_img_path)
+tiktok_img_base64 = to_base64(tiktok_img_path)
+x_img_base64 = to_base64(x_img_path)
+
+titulo_img_path = SOCIAL_DIR / "titulo.png"
+titulo_img_base64 = to_base64(titulo_img_path)
+
+header_html = f"""
+<div class="header-container">
+  <div class="logo-and-text">
+    <img src="data:image/png;base64,{titulo_img_base64}" alt="Logo" class="logo"/>
+    <span class="brand-name">ÑATABET</span>
+  </div>
+  <div class="right-links">
+    <a href="https://kick.com/yairlonelys" target="_blank">
+        <img src="data:image/png;base64,{kick_img_base64}" class="social-icon">
+    </a>
+    <a href="https://x.com/YairLonelys" target="_blank">
+        <img src="data:image/png;base64,{x_img_base64}" class="social-icon">
+    </a>
+    <a href="https://www.tiktok.com/@yairlonelyss" target="_blank">
+        <img src="data:image/png;base64,{tiktok_img_base64}" class="social-icon">
+    </a>
+  </div>
+</div>
+"""
+st.markdown(header_html, unsafe_allow_html=True)
+
+# 2) Título principal
 with st.container():
     st.markdown("<div class='title'>Dota 2 Ñatabet</div>", unsafe_allow_html=True)
 
+# 3) Mostrar equipos
 col1, col2 = st.columns(2)
 with col1:
     if st.session_state.radiant:
@@ -653,6 +699,7 @@ with col2:
     if st.session_state.dire:
         display_team("Dire", st.session_state.dire)
 
+# 4) Diferencia de MMR (solo si Radiant y Dire tienen jugadores)
 if st.session_state.radiant and st.session_state.dire:
     diff = abs(
         sum(st.session_state.players[p]["mmr"] for p in st.session_state.radiant) -
@@ -661,33 +708,9 @@ if st.session_state.radiant and st.session_state.dire:
     with st.container():
         st.markdown(f"<div class='mmr-difference'>Diferencia de MMR: {diff:,}</div>", unsafe_allow_html=True)
 
-#############################################
-# Código para redes sociales
-#############################################
-kick_img_path = SOCIAL_DIR / "kick.png"
-tiktok_img_path = SOCIAL_DIR / "tiktok.png"
-x_img_path = SOCIAL_DIR / "x.png"
+# 5) Ícono flotante de WhatsApp (abajo a la izquierda)
 whatsapp_img_path = SOCIAL_DIR / "whatsapp.png"
-
-kick_img_base64 = to_base64(kick_img_path)
-tiktok_img_base64 = to_base64(tiktok_img_path)
-x_img_base64 = to_base64(x_img_path)
 whatsapp_img_base64 = to_base64(whatsapp_img_path)
-
-social_icons_html = f"""
-<div class="social-icons">
-    <a href="https://kick.com/yairlonelys" target="_blank">
-        <img src="data:image/png;base64,{kick_img_base64}" class="social-icon" width="45">
-    </a>
-    <a href="https://x.com/YairLonelys" target="_blank" style="margin-left: 12px;">
-        <img src="data:image/png;base64,{x_img_base64}" class="social-icon" width="45">
-    </a>
-    <a href="https://www.tiktok.com/@yairlonelyss" target="_blank" style="margin-left: 12px;">
-        <img src="data:image/png;base64,{tiktok_img_base64}" class="social-icon" width="45">
-    </a>
-</div>
-"""
-st.markdown(social_icons_html, unsafe_allow_html=True)
 
 whatsapp_html = f"""
 <div style="
@@ -713,4 +736,3 @@ whatsapp_html = f"""
 </div>
 """
 st.markdown(whatsapp_html, unsafe_allow_html=True)
-
