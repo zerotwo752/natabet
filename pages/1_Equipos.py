@@ -87,18 +87,11 @@ st.markdown(f"""
         margin-bottom: 5px;
         font-size: 16px;
     }}
-    .mmr-difference {
-    font-size: 24px;
-    color: #FFFFFF;
-    font-weight: bold;
-    text-align: center;
-    text-shadow:
-        -1px -1px 0 purple,
-         1px -1px 0 purple,
-        -1px  1px 0 purple,
-         1px  1px 0 purple;
-}
-
+    .mmr-difference {{
+        font-size: 24px;
+        color: #FFFFFF;
+        font-weight: bold;
+        text-align: center;
     }}
     .title {{
         font-size: 32px;
