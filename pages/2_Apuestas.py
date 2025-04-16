@@ -15,9 +15,9 @@ def to_base64(img_path: Path) -> str:
     return ""
 
 #############################################
-# Rutas globales
+# Rutas globales (con la misma estructura que en el código original)
 #############################################
-BASE_DIR = Path(__file__).parent  # Asumiendo que este archivo se encuentra en el root o ajusta según tu estructura
+BASE_DIR = Path(__file__).parent.parent  # Sube un nivel desde la carpeta actual (/pages)
 IMAGES_DIR = BASE_DIR / "imagenes"       
 SOCIAL_DIR = BASE_DIR / "social"          
 YAPE_PATH = BASE_DIR / "yape"             
@@ -65,10 +65,10 @@ st.markdown(f"""
         font-weight: bold;
         color: #FFFFFF;
         text-shadow:
-        -1px -1px 0 purple,
-         1px -1px 0 purple,
-        -1px  1px 0 purple,
-         1px  1px 0 purple;
+            -1px -1px 0 purple,
+             1px -1px 0 purple,
+            -1px  1px 0 purple,
+             1px  1px 0 purple;
     }}
     .social-icon {{
         width: 60px;
@@ -100,7 +100,6 @@ st.markdown(f"""
 #############################################
 # Header: Logo, Marca y Redes Sociales
 #############################################
-# Cargar imágenes del header desde la carpeta social
 titulo_img_path = SOCIAL_DIR / "titulo.png"
 titulo_img_base64 = to_base64(titulo_img_path)
 
@@ -137,19 +136,17 @@ st.markdown(header_html, unsafe_allow_html=True)
 #############################################
 # Imagen y función de Yape
 #############################################
-# En este ejemplo, se asume que la imagen de Yape se usa como botón que redirige a una URL
-yape_img_path = YAPE_PATH / "yape.png"  # Asegúrate que la imagen exista en la carpeta yape
+yape_img_path = YAPE_PATH / "yape.png"  # Asegúrate de que esta imagen exista en la carpeta yape
 yape_img_base64 = to_base64(yape_img_path)
-# URL de ejemplo (modifica con la que necesites)
-yape_url = "https://www.yape.com.pe/"
+yape_url = "https://www.yape.com.pe/"  # Modifica la URL según lo que necesites
 
-st.markdown("""
+st.markdown(f"""
     <div class="yape-container">
-        <a href="{0}" target="_blank">
-            <img src="data:image/png;base64,{1}" alt="Yape">
+        <a href="{yape_url}" target="_blank">
+            <img src="data:image/png;base64,{yape_img_base64}" alt="Yape">
         </a>
     </div>
-    """.format(yape_url, yape_img_base64), unsafe_allow_html=True)
+    """, unsafe_allow_html=True)
 
 #############################################
 # Sidebar: Solo Login (Área de Administrador)
@@ -159,7 +156,6 @@ with st.sidebar.expander("ADMIN (LOGIN)", expanded=True):
         'yair': 'yair123',
         'fernando': 'fernando123'
     }
-    # Si el usuario ya se autenticó, mostrar mensaje de conexión
     if 'is_admin' not in st.session_state:
         st.session_state.is_admin = False
     if not st.session_state.is_admin:
@@ -179,8 +175,8 @@ with st.sidebar.expander("ADMIN (LOGIN)", expanded=True):
 #############################################
 # Contenido principal
 #############################################
-# Aquí podrías agregar el contenido adicional que desees para esta sección.
 st.markdown("<h2 style='text-align: center; color: #FFFFFF;'>Bienvenido a ÑATABET</h2>", unsafe_allow_html=True)
 st.markdown("<p style='text-align: center; color: #FFFFFF;'>Esta es la sección con el fondo, header y la funcionalidad de Yape. El resto de opciones se han eliminado.</p>", unsafe_allow_html=True)
+
 
 
