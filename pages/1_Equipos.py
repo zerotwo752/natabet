@@ -92,6 +92,11 @@ st.markdown(f"""
         color: #FFFFFF;
         font-weight: bold;
         text-align: center;
+        text-shadow:
+        -1px -1px 0 purple,
+         1px -1px 0 purple,
+        -1px  1px 0 purple,
+         1px  1px 0 purple;
     }}
     .title {{
         font-size: 32px;
