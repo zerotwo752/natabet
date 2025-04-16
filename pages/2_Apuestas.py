@@ -155,7 +155,7 @@ st.markdown(f"""
         align-items: center;
     }}
     .social-icon {{
-        width: 45px !important;
+        width: 60px !important;
         height: auto;
         margin-left: 12px;
         cursor: pointer;
