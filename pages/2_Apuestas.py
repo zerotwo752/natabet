@@ -1,7 +1,7 @@
 import streamlit as st
 import base64
 from pathlib import Path
-import os
+import pandas as pd
 
 # Configuración de la página en modo "wide"
 st.set_page_config(layout="wide")
@@ -15,12 +15,12 @@ def to_base64(img_path: Path) -> str:
     return ""
 
 #############################################
-# Rutas globales (con la misma estructura que en el código original)
+# Rutas globales (con la misma estructura que en tu código original)
 #############################################
 BASE_DIR = Path(__file__).parent.parent  # Sube un nivel desde la carpeta actual (/pages)
-IMAGES_DIR = BASE_DIR / "imagenes"       
-SOCIAL_DIR = BASE_DIR / "social"          
-YAPE_PATH = BASE_DIR / "yape"             
+IMAGES_DIR = BASE_DIR / "imagenes"
+SOCIAL_DIR = BASE_DIR / "social"
+YAPE_PATH = BASE_DIR / "yape"
 
 #############################################
 # Inyección de CSS global con fondo (pato)
@@ -82,7 +82,8 @@ st.markdown(f"""
     }}
     .yape-container {{
         text-align: center;
-        margin-top: 50px;
+        margin-top: 15px;
+        margin-bottom: 25px;
     }}
     .yape-container img {{
         width: 250px;
@@ -94,6 +95,16 @@ st.markdown(f"""
     .yape-container img:hover {{
         transform: scale(1.05);
     }}
+
+    /* Ajuste para la tabla */
+    .tabla-container {{
+        background-color: rgba(0,0,0,0.7);
+        padding: 20px;
+        border-radius: 12px;
+        margin: 0 auto;
+        width: 90%;
+    }}
+
     </style>
     """, unsafe_allow_html=True)
 
@@ -173,10 +184,86 @@ with st.sidebar.expander("ADMIN (LOGIN)", expanded=True):
             st.session_state.is_admin = False
 
 #############################################
-# Contenido principal
+# Datos iniciales para la tabla (en caso de no haber nada en session_state)
 #############################################
-st.markdown("<h2 style='text-align: center; color: #FFFFFF;'>Bienvenido a ÑATABET</h2>", unsafe_allow_html=True)
-st.markdown("<p style='text-align: center; color: #FFFFFF;'>eliminado.</p>", unsafe_allow_html=True)
+if 'df_bets' not in st.session_state:
+    # Creamos un DataFrame con columnas vacías
+    st.session_state.df_bets = pd.DataFrame({
+        "Nombre": pd.Series(dtype=str),
+        "Monto": pd.Series(dtype=float),
+        "Equipo": pd.Series(dtype=str),   # Radiant/Dire/None
+        "Multiplicado": pd.Series(dtype=float),
+        "Check": pd.Series(dtype=bool),
+        "Notas": pd.Series(dtype=str)
+    })
 
+#############################################
+# Lógica para mostrar/editar la tabla
+#############################################
+def recalculate(df: pd.DataFrame) -> pd.DataFrame:
+    """Recalcula la columna 'Multiplicado' = Monto * 1.8"""
+    df = df.copy()
+    df["Multiplicado"] = df["Monto"] * 1.8
+    return df
+
+with st.container():
+    st.markdown("<h2 style='text-align: center; color: #FFFFFF;'>Bienvenido a ÑATABET</h2>", unsafe_allow_html=True)
+    st.markdown("<p style='text-align: center; color: #FFFFFF;'>Completa la tabla como en tu hoja de cálculo.</p>", unsafe_allow_html=True)
+    
+    with st.expander("Tabla de Apuestas", expanded=True):
+        st.markdown("<div class='tabla-container'>", unsafe_allow_html=True)
+
+        # IMPORTANTE: necesitamos st.data_editor para editar la tabla
+        edited_df = st.data_editor(
+            st.session_state.df_bets,
+            column_config={
+                "Nombre": st.column_config.TextColumn("Nombre"),
+                "Monto": st.column_config.NumberColumn("Monto", step=1.0, format="%.2f"),
+                "Equipo": st.column_config.SelectboxColumn(
+                    "Equipo",
+                    options=["", "Radiant", "Dire"]
+                ),
+                "Multiplicado": st.column_config.NumberColumn(
+                    "Multiplicado",
+                    disabled=True,  # que no se pueda editar
+                    format="%.2f"
+                ),
+                "Check": st.column_config.CheckboxColumn("Check"),
+                "Notas": st.column_config.TextColumn("Notas")
+            },
+            key="bets_editor",
+            width=900,
+            height=400
+        )
+
+        # Actualizamos la tabla en session_state después de la edición
+        st.session_state.df_bets = recalculate(edited_df)
+
+        st.markdown("</div>", unsafe_allow_html=True)
+
+#############################################
+# Resumen de Radiant / Dire / Sin Equipo
+#############################################
+df = st.session_state.df_bets
+df_radiant = df[df["Equipo"] == "Radiant"]
+df_dire = df[df["Equipo"] == "Dire"]
+df_blank = df[df["Equipo"] == ""]
+sum_radiant = df_radiant["Monto"].sum()
+sum_dire = df_dire["Monto"].sum()
+sum_blank = df_blank["Monto"].sum()
+sum_total = df["Monto"].sum()
+difference = abs(sum_radiant - sum_dire)
+
+col1, col2, col3, col4, col5 = st.columns([1,1,1,1,1])
+with col1:
+    st.metric("Radiant", f"{sum_radiant:.2f}")
+with col2:
+    st.metric("Dire", f"{sum_dire:.2f}")
+with col3:
+    st.metric("Sin Equipo", f"{sum_blank:.2f}")
+with col4:
+    st.metric("Total", f"{sum_total:.2f}")
+with col5:
+    st.metric("Diferencia", f"{difference:.2f}")
 
 
