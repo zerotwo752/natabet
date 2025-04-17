@@ -23,9 +23,9 @@ if 'is_admin' not in st.session_state:
     st.session_state.is_admin = False
 
 # -----------------------------------------
-# Rutas de carpetas (igual que en tu proyecto)
+# Rutas de carpetas ( **ajuste aquí** )
 # -----------------------------------------
-BASE_DIR    = Path(__file__).parent.parent
+BASE_DIR    = Path(__file__).parent       # ← antes era parent.parent
 IMAGES_DIR  = BASE_DIR / "imagenes"
 SOCIAL_DIR  = BASE_DIR / "social"
 YAPE_PATH   = BASE_DIR / "yape"
@@ -160,8 +160,10 @@ def recalc(df):
 if st.session_state.is_admin:
     with st.container():
         st.markdown("<div class='tabla-container'>", unsafe_allow_html=True)
+        # ← AÑADIDO reset_index(drop=True)
+        df_edit = recalc(st.session_state.df_bets).reset_index(drop=True)
         edited = st.data_editor(
-            recalc(st.session_state.df_bets),
+            df_edit,
             column_config={
                 "Nombre":      st.column_config.TextColumn("Nombre"),
                 "Monto":       st.column_config.NumberColumn("Monto", step=1.0, format="%.2f"),
@@ -181,9 +183,9 @@ if st.session_state.is_admin:
 # -----------------------------------------
 # Calcular totales y diferencia
 # -----------------------------------------
-df = st.session_state.df_bets
-sum_r = df[df["Equipo"]=="Radiant"]["Monto"].sum()
-sum_d = df[df["Equipo"]=="Dire"]["Monto"].sum()
+df     = st.session_state.df_bets
+sum_r  = df[df["Equipo"]=="Radiant"]["Monto"].sum()
+sum_d  = df[df["Equipo"]=="Dire"]["Monto"].sum()
 difference = abs(sum_r - sum_d)
 
 # -----------------------------------------
@@ -192,7 +194,7 @@ difference = abs(sum_r - sum_d)
 with st.container():
     st.markdown("<div class='metrics-container'>", unsafe_allow_html=True)
     c1, c2, c3 = st.columns(3)
-    c1.metric("Radiant", f"{sum_r:.2f}")
-    c2.metric("Dire",    f"{sum_d:.2f}")
-    c3.metric("Diferencia", f"{difference:.2f}")
+    c1.metric("Radiant",   f"{sum_r:.2f}")
+    c2.metric("Dire",      f"{sum_d:.2f}")
+    c3.metric("Diferencia",f"{difference:.2f}")
     st.markdown("</div>", unsafe_allow_html=True)
