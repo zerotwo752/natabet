@@ -2,6 +2,7 @@ import streamlit as st
 import base64
 from pathlib import Path
 import pandas as pd
+import numpy as np
 
 # -----------------------------------------
 # Configuración de la página
@@ -23,7 +24,7 @@ if 'is_admin' not in st.session_state:
     st.session_state.is_admin = False
 
 # -----------------------------------------
-# Rutas de carpetas
+# Rutas de carpetas (ajusta según tu estructura real)
 # -----------------------------------------
 BASE_DIR    = Path(__file__).parent.parent
 IMAGES_DIR  = BASE_DIR / "imagenes"
@@ -136,23 +137,34 @@ st.markdown(f"""
 # -----------------------------------------
 # Inicializar DataFrame de apuestas
 # -----------------------------------------
-if 'df_bets' not in st.session_state:
-    st.session_state.df_bets = pd.DataFrame({
-        "Nombre":      [],
-        "Monto":       [],
-        "Equipo":      [],
-        "Multiplicado":[],
-        "Check":       [],
-        "Notas":       [],
+def get_empty_bets_df():
+    return pd.DataFrame({
+        "Nombre":       pd.Series(dtype="str"),
+        "Monto":        pd.Series(dtype="float"),
+        "Equipo":       pd.Series(dtype="str"),
+        "Multiplicado": pd.Series(dtype="float"),
+        "Check":        pd.Series(dtype="bool"),
+        "Notas":        pd.Series(dtype="str"),
     })
+
+if "df_bets" not in st.session_state:
+    st.session_state.df_bets = get_empty_bets_df()
 
 # -----------------------------------------
 # Función para recalcular
 # -----------------------------------------
 def recalc(df):
     df = df.copy()
-    df["Multiplicado"] = df["Monto"].astype(float) * 1.8
-    return df
+    df["Monto"] = pd.to_numeric(df["Monto"], errors="coerce")
+    df["Multiplicado"] = df["Monto"] * 1.8
+    return df.fillna({
+        "Nombre": "",
+        "Monto": 0.0,
+        "Equipo": "",
+        "Multiplicado": 0.0,
+        "Check": False,
+        "Notas": ""
+    })
 
 # -----------------------------------------
 # Si es Admin, mostrar editor de tabla
@@ -160,38 +172,29 @@ def recalc(df):
 if st.session_state.is_admin:
     with st.container():
         st.markdown("<div class='tabla-container'>", unsafe_allow_html=True)
-        
-        # Crear copia editable sin tocar directamente session_state
-        editable_df = st.session_state.df_bets.copy()
-        editable_df = recalc(editable_df)
-
         edited_df = st.data_editor(
-            editable_df,
+            recalc(st.session_state.df_bets),
             column_config={
-                "Nombre":      st.column_config.TextColumn("Nombre"),
-                "Monto":       st.column_config.NumberColumn("Monto", step=1.0, format="%.2f"),
-                "Equipo":      st.column_config.SelectboxColumn("Equipo", options=["", "Radiant", "Dire"]),
-                "Multiplicado":st.column_config.NumberColumn("Multiplicado", disabled=True, format="%.2f"),
-                "Check":       st.column_config.CheckboxColumn("Check"),
-                "Notas":       st.column_config.TextColumn("Notas"),
+                "Nombre":       st.column_config.TextColumn("Nombre"),
+                "Monto":        st.column_config.NumberColumn("Monto", step=1.0, format="%.2f"),
+                "Equipo":       st.column_config.SelectboxColumn("Equipo", options=["", "Radiant", "Dire"]),
+                "Multiplicado": st.column_config.NumberColumn("Multiplicado", disabled=True, format="%.2f"),
+                "Check":        st.column_config.CheckboxColumn("Check"),
+                "Notas":        st.column_config.TextColumn("Notas"),
             },
             key="bets_editor",
             num_rows="dynamic",
-            use_container_width=True,
+            use_container_width=True
         )
-
-        # Guardar los cambios solo si difiere
-        if not edited_df.equals(st.session_state.df_bets):
-            st.session_state.df_bets = recalc(edited_df)
-
+        st.session_state.df_bets = recalc(edited_df)
         st.markdown("</div>", unsafe_allow_html=True)
 
 # -----------------------------------------
 # Calcular totales y diferencia
 # -----------------------------------------
 df = st.session_state.df_bets
-sum_r = df[df["Equipo"] == "Radiant"]["Monto"].sum()
-sum_d = df[df["Equipo"] == "Dire"]["Monto"].sum()
+sum_r = df[df["Equipo"]=="Radiant"]["Monto"].sum()
+sum_d = df[df["Equipo"]=="Dire"]["Monto"].sum()
 difference = abs(sum_r - sum_d)
 
 # -----------------------------------------
@@ -201,7 +204,7 @@ with st.container():
     st.markdown("<div class='metrics-container'>", unsafe_allow_html=True)
     c1, c2, c3 = st.columns(3)
     c1.metric("Radiant", f"{sum_r:.2f}")
-    c2.metric("Dire", f"{sum_d:.2f}")
+    c2.metric("Dire",    f"{sum_d:.2f}")
     c3.metric("Diferencia", f"{difference:.2f}")
     st.markdown("</div>", unsafe_allow_html=True)
 
