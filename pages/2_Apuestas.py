@@ -23,9 +23,9 @@ if 'is_admin' not in st.session_state:
     st.session_state.is_admin = False
 
 # -----------------------------------------
-# Rutas de carpetas (igual que en tu proyecto)
+# Rutas de carpetas (apuntando al mismo nivel del script)
 # -----------------------------------------
-BASE_DIR    = Path(__file__).parent.parent
+BASE_DIR    = Path(__file__).parent       # ← CAMBIO
 IMAGES_DIR  = BASE_DIR / "imagenes"
 SOCIAL_DIR  = BASE_DIR / "social"
 YAPE_PATH   = BASE_DIR / "yape"
@@ -44,11 +44,8 @@ st.markdown(f"""
     background: #1a1a1a !important;
     color: #FFF !important;
   }}
-  h1, h2, h3, h4, h5, h6 {{ color: #FFD700 !important; }}
-  .header-container {{
-    display: flex; align-items: center; justify-content: space-between;
-    padding: 10px 20px;
-  }}
+  h1,h2,h3,h4,h5,h6 {{ color: #FFD700 !important; }}
+  .header-container {{ display:flex; align-items:center; justify-content:space-between; padding:10px 20px; }}
   .logo {{ width:50px; }}
   .brand-name {{
     font-size:24px; font-weight:bold; color:#FFF;
@@ -138,12 +135,12 @@ st.markdown(f"""
 # -----------------------------------------
 if 'df_bets' not in st.session_state:
     st.session_state.df_bets = pd.DataFrame({
-        "Nombre":      pd.Series(dtype=str),
-        "Monto":       pd.Series(dtype=float),
-        "Equipo":      pd.Series(dtype=str),
-        "Multiplicado":pd.Series(dtype=float),
-        "Check":       pd.Series(dtype=bool),
-        "Notas":       pd.Series(dtype=str),
+        "Nombre":       pd.Series(dtype=str),
+        "Monto":        pd.Series(dtype=float),
+        "Equipo":       pd.Series(dtype=str),
+        "Multiplicado": pd.Series(dtype=float),
+        "Check":        pd.Series(dtype=bool),
+        "Notas":        pd.Series(dtype=str),
     })
 
 # -----------------------------------------
@@ -160,15 +157,17 @@ def recalc(df):
 if st.session_state.is_admin:
     with st.container():
         st.markdown("<div class='tabla-container'>", unsafe_allow_html=True)
+        # ← AÑADIDO reset_index() para evitar el bug interno
+        df_edit = recalc(st.session_state.df_bets).reset_index(drop=True)
         edited = st.data_editor(
-            recalc(st.session_state.df_bets),
+            df_edit,
             column_config={
-                "Nombre":      st.column_config.TextColumn("Nombre"),
-                "Monto":       st.column_config.NumberColumn("Monto", step=1.0, format="%.2f"),
-                "Equipo":      st.column_config.SelectboxColumn("Equipo", options=["","Radiant","Dire"]),
-                "Multiplicado":st.column_config.NumberColumn("Multiplicado", disabled=True, format="%.2f"),
-                "Check":       st.column_config.CheckboxColumn("Check"),
-                "Notas":       st.column_config.TextColumn("Notas"),
+                "Nombre":       st.column_config.TextColumn("Nombre"),
+                "Monto":        st.column_config.NumberColumn("Monto", step=1.0, format="%.2f"),
+                "Equipo":       st.column_config.SelectboxColumn("Equipo", options=["","Radiant","Dire"]),
+                "Multiplicado": st.column_config.NumberColumn("Multiplicado", disabled=True, format="%.2f"),
+                "Check":        st.column_config.CheckboxColumn("Check"),
+                "Notas":        st.column_config.TextColumn("Notas"),
             },
             key="bets_editor",
             num_rows=10,
@@ -181,7 +180,7 @@ if st.session_state.is_admin:
 # -----------------------------------------
 # Calcular totales y diferencia
 # -----------------------------------------
-df = st.session_state.df_bets
+df    = st.session_state.df_bets
 sum_r = df[df["Equipo"]=="Radiant"]["Monto"].sum()
 sum_d = df[df["Equipo"]=="Dire"]["Monto"].sum()
 difference = abs(sum_r - sum_d)
@@ -192,7 +191,7 @@ difference = abs(sum_r - sum_d)
 with st.container():
     st.markdown("<div class='metrics-container'>", unsafe_allow_html=True)
     c1, c2, c3 = st.columns(3)
-    c1.metric("Radiant", f"{sum_r:.2f}")
-    c2.metric("Dire",    f"{sum_d:.2f}")
-    c3.metric("Diferencia", f"{difference:.2f}")
+    c1.metric("Radiant",   f"{sum_r:.2f}")
+    c2.metric("Dire",      f"{sum_d:.2f}")
+    c3.metric("Diferencia",f"{difference:.2f}")
     st.markdown("</div>", unsafe_allow_html=True)
