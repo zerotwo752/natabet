@@ -60,7 +60,6 @@ def init_db():
 
 def load_bets() -> pd.DataFrame:
     conn = get_db_connection()
-    # Alias SQL columns para que coincidan con el DataFrame:
     df = pd.read_sql(
         """
         SELECT
@@ -115,7 +114,7 @@ if 'is_admin' not in st.session_state:
     st.session_state.is_admin = False
 
 # -----------------------------------------
-# Rutas de carpetas
+# Rutas de carpetas (ajusta según tu estructura)
 # -----------------------------------------
 BASE_DIR   = Path(__file__).parent.parent
 IMAGES_DIR = BASE_DIR / "imagenes"
@@ -124,12 +123,49 @@ YAPE_PATH  = BASE_DIR / "yape"
 
 # -----------------------------------------
 # Inyección de CSS global
-# ...
-# (aquí va todo tu CSS, igual que antes)
-# ...
+# -----------------------------------------
+pato_b64 = to_base64(SOCIAL_DIR / "pato.gif")
+st.markdown(f"""
+<style>
+  .stApp {{
+    background: url("data:image/gif;base64,{pato_b64}") center 70% / cover fixed #1a1a1a;
+    color: #FFF !important;
+  }}
+  [data-testid="stSidebar"] *, h1, h2, h3, h4, h5, h6 {{
+    background: #1a1a1a !important;
+    color: #FFF !important;
+  }}
+  h1, h2, h3, h4, h5, h6 {{ color: #FFD700 !important; }}
+  .header-container {{
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 10px 20px;
+  }}
+  .logo {{ width:50px; }}
+  .brand-name {{
+    font-size:24px; font-weight:bold; color:#FFF;
+    text-shadow:-1px -1px 0 purple,1px -1px 0 purple,-1px 1px 0 purple,1px 1px 0 purple;
+  }}
+  .social-icon {{ width:60px; margin-left:12px; cursor:pointer; transition:.2s; }}
+  .social-icon:hover {{ transform:scale(1.1); }}
+  .yape-container {{ text-align:center; margin:25px 0; }}
+  .yape-container img {{
+    width:250px; border-radius:12px; box-shadow:0 4px 12px rgba(0,0,0,0.3);
+    transition:transform .3s;
+  }}
+  .yape-container img:hover {{ transform:scale(1.05); }}
+  .tabla-container {{
+    background: rgba(0,0,0,0.7); padding:20px; border-radius:12px;
+    margin: 20px auto; width:90%;
+  }}
+  .metrics-container {{
+    background: rgba(0,0,0,0.7); padding:20px; border-radius:12px;
+    margin: 20px auto; width:60%;
+  }}
+</style>
+""", unsafe_allow_html=True)
 
 # -----------------------------------------
-# Sidebar: Login de Admin
+# Sidebar: Login de Admin + Botón de guardado
 # -----------------------------------------
 with st.sidebar.expander("ADMIN (LOGIN)", expanded=True):
     admin_creds = {'yair': 'yair123', 'fernando': 'fernando123'}
@@ -146,14 +182,53 @@ with st.sidebar.expander("ADMIN (LOGIN)", expanded=True):
         st.write("👑 Administrador conectado")
         if st.button("🔒 Cerrar sesión", key="logout_btn"):
             st.session_state.is_admin = False
+        # ——— Aquí añadimos el botón:
+        if st.button("💾 Guardar apuestas"):
+            save_bets(st.session_state.df_bets)
+            st.success("¡Apuestas guardadas en la base de datos!")
 
 # -----------------------------------------
-# Header, Yape y demás secciones...
-# (idénticas a tu código anterior)
+# Header: Logo + ÑATABET + Redes Sociales
 # -----------------------------------------
+logo_b64   = to_base64(SOCIAL_DIR / "titulo.png")
+kick_b64   = to_base64(SOCIAL_DIR / "kick.png")
+x_b64      = to_base64(SOCIAL_DIR / "x.png")
+tiktok_b64 = to_base64(SOCIAL_DIR / "tiktok.png")
+st.markdown(f"""
+<div class="header-container">
+  <div style="display:flex; align-items:center; gap:12px;">
+    <img src="data:image/png;base64,{logo_b64}" class="logo" alt="Logo">
+    <span class="brand-name">ÑATABET</span>
+  </div>
+  <div>
+    <a href="https://kick.com/yairlonelys" target="_blank">
+      <img src="data:image/png;base64,{kick_b64}" class="social-icon">
+    </a>
+    <a href="https://x.com/YairLonelys" target="_blank">
+      <img src="data:image/png;base64,{x_b64}" class="social-icon">
+    </a>
+    <a href="https://www.tiktok.com/@yairlonelyss" target="_blank">
+      <img src="data:image/png;base64,{tiktok_b64}" class="social-icon">
+    </a>
+  </div>
+</div>
+""", unsafe_allow_html=True)
 
 # -----------------------------------------
-# Función para recalcular
+# Yape
+# -----------------------------------------
+yape_b64 = to_base64(YAPE_PATH / "yape.png")
+yape_url = "https://www.yape.com.pe/"
+st.markdown(f"""
+<div class="yape-container">
+  <a href="{yape_url}" target="_blank">
+    <img src="data:image/png;base64,{yape_b64}" alt="Yape">
+  </a>
+</div>
+""", unsafe_allow_html=True)
+
+# -----------------------------------------
+# Función para recalcular montos
 # -----------------------------------------
 def recalc(df: pd.DataFrame) -> pd.DataFrame:
     df = df.copy()
@@ -169,7 +244,7 @@ def recalc(df: pd.DataFrame) -> pd.DataFrame:
     })
 
 # -----------------------------------------
-# Editor de apuestas (sólo Admin)
+# Editor de apuestas (solo Admin)
 # -----------------------------------------
 if st.session_state.is_admin:
     with st.container():
@@ -188,17 +263,16 @@ if st.session_state.is_admin:
             num_rows="dynamic",
             use_container_width=True
         )
-        if not edited.equals(st.session_state.df_bets):
-            st.session_state.df_bets = recalc(edited)
-            save_bets(st.session_state.df_bets)
+        # Actualizamos sólo en sesión; para persistir, pulsar “Guardar apuestas”
+        st.session_state.df_bets = recalc(edited)
         st.markdown("</div>", unsafe_allow_html=True)
 
 # -----------------------------------------
 # Métricas siempre visibles
 # -----------------------------------------
 df = st.session_state.df_bets
-sum_r     = df[df["Equipo"] == "Radiant"]["Monto"].sum()
-sum_d     = df[df["Equipo"] == "Dire"]["Monto"].sum()
+sum_r      = df[df["Equipo"] == "Radiant"]["Monto"].sum()
+sum_d      = df[df["Equipo"] == "Dire"]["Monto"].sum()
 difference = abs(sum_r - sum_d)
 
 with st.container():
@@ -208,4 +282,5 @@ with st.container():
     c2.metric("Dire",    f"{sum_d:.2f}")
     c3.metric("Diferencia", f"{difference:.2f}")
     st.markdown("</div>", unsafe_allow_html=True)
+
 
