@@ -201,25 +201,34 @@ st.markdown(f"""
 # -----------------------------------------
 if st.session_state.is_admin:
     with st.container():
-        st.markdown("<div class='tabla-container'>",unsafe_allow_html=True)
+        st.markdown("<div class='tabla-container'>", unsafe_allow_html=True)
+        
+        # Calcular la columna "Multiplicado" en tiempo real
         edited = st.data_editor(
             st.session_state.edited_df,
             column_config={
                 "Nombre": st.column_config.TextColumn("Nombre"),
-                "Monto":  st.column_config.NumberColumn("Monto", step=1.0,format="%.2f"),
-                "Equipo": st.column_config.SelectboxColumn("Equipo",options=["","Radiant","Dire"]),
+                "Monto":  st.column_config.NumberColumn("Monto", step=1.0, format="%.2f"),
+                "Equipo": st.column_config.SelectboxColumn("Equipo", options=["", "Radiant", "Dire"]),
                 "Check":  st.column_config.CheckboxColumn("Check"),
                 "Notas":  st.column_config.TextColumn("Notas"),
             },
-            computed_columns=[
-                st.column_config.ComputedColumn("Multiplicado","Monto * 1.8",format="%.2f")
-            ],
-            key="bets_editor",
             num_rows="dynamic",
-            use_container_width=True
+            use_container_width=True,
+            key="bets_editor"
         )
+        
+        # Calcular manualmente Multiplicado
+        edited["Multiplicado"] = edited["Monto"].astype(float).fillna(0) * 1.8
+        
         st.session_state.edited_df = edited.copy()
-        st.markdown("</div>",unsafe_allow_html=True)
+        
+        # Mostrar Multiplicado como tabla separada (opcional)
+        st.dataframe(edited[["Nombre", "Monto", "Equipo", "Multiplicado", "Check", "Notas"]],
+                     use_container_width=True)
+
+        st.markdown("</div>", unsafe_allow_html=True)
+
 
 # -----------------------------------------
 # Métricas
