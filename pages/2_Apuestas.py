@@ -23,9 +23,9 @@ if 'is_admin' not in st.session_state:
     st.session_state.is_admin = False
 
 # -----------------------------------------
-# Rutas de carpetas (ajustadas para Streamlit Cloud)
+# Rutas de carpetas (igual que en tu proyecto)
 # -----------------------------------------
-BASE_DIR    = Path(__file__).parent       # Ahora apunta a la carpeta donde está este script
+BASE_DIR    = Path(__file__).parent.parent
 IMAGES_DIR  = BASE_DIR / "imagenes"
 SOCIAL_DIR  = BASE_DIR / "social"
 YAPE_PATH   = BASE_DIR / "yape"
@@ -196,5 +196,3 @@ with st.container():
     c2.metric("Dire",    f"{sum_d:.2f}")
     c3.metric("Diferencia", f"{difference:.2f}")
     st.markdown("</div>", unsafe_allow_html=True)
-
-
