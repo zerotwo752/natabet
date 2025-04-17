@@ -75,9 +75,7 @@ def load_bets() -> pd.DataFrame:
         conn
     )
     conn.close()
-    if df.empty:
-        return get_empty_bets_df()
-    return df
+    return df if not df.empty else get_empty_bets_df()
 
 def save_bets(df: pd.DataFrame):
     conn = get_db_connection()
@@ -104,8 +102,10 @@ def save_bets(df: pd.DataFrame):
 # -----------------------------------------
 init_db()
 if "df_bets" not in st.session_state:
-    st.session_state.df_bets = load_bets()
-    st.session_state.db_loaded = True
+    st.session_state.df_bets    = load_bets()
+    # El borrador que usaremos en el editor:
+    st.session_state.edited_df  = st.session_state.df_bets.copy()
+    st.session_state.db_loaded  = True
 
 # -----------------------------------------
 # Inicializar estado de autenticación
@@ -114,7 +114,7 @@ if 'is_admin' not in st.session_state:
     st.session_state.is_admin = False
 
 # -----------------------------------------
-# Rutas de carpetas (ajusta según tu estructura)
+# Rutas de carpetas
 # -----------------------------------------
 BASE_DIR   = Path(__file__).parent.parent
 IMAGES_DIR = BASE_DIR / "imagenes"
@@ -122,7 +122,7 @@ SOCIAL_DIR = BASE_DIR / "social"
 YAPE_PATH  = BASE_DIR / "yape"
 
 # -----------------------------------------
-# Inyección de CSS global (mantén el tuyo completo)
+# Inyección de CSS global (tu CSS completo aquí)
 # -----------------------------------------
 pato_b64 = to_base64(SOCIAL_DIR / "pato.gif")
 st.markdown(f"""
@@ -141,10 +141,10 @@ st.markdown(f"""
 with st.sidebar.expander("ADMIN (LOGIN)", expanded=True):
     admin_creds = {'yair': 'yair123', 'fernando': 'fernando123'}
     if not st.session_state.is_admin:
-        u = st.text_input("Usuario", key="login_user")
-        p = st.text_input("Contraseña", type="password", key="login_pass")
+        user = st.text_input("Usuario", key="login_user")
+        pwd  = st.text_input("Contraseña", type="password", key="login_pass")
         if st.button("Ingresar", key="login_btn"):
-            if u in admin_creds and admin_creds[u] == p:
+            if user in admin_creds and admin_creds[user] == pwd:
                 st.session_state.is_admin = True
                 st.success("👑 Admin autenticado")
             else:
@@ -154,26 +154,24 @@ with st.sidebar.expander("ADMIN (LOGIN)", expanded=True):
         if st.button("🔒 Cerrar sesión", key="logout_btn"):
             st.session_state.is_admin = False
 
-        # ——— Botón para volcar la tabla editada a la DB
+        # Botón para guardar el borrador en la DB
         if st.button("💾 Guardar apuestas", key="save_btn"):
-            # 'edited_df' lo guardamos en sesión al hacer el data_editor más abajo
-            new_df = st.session_state.get("edited_df", st.session_state.df_bets)
-            st.session_state.df_bets = new_df.copy()
+            st.session_state.df_bets = st.session_state.edited_df.copy()
             save_bets(st.session_state.df_bets)
             st.success("¡Apuestas guardadas!")
 
 # -----------------------------------------
-# Header, Yape y demás secciones visuales
+# Header, Yape y demás bloques visuales
+# (copia aquí todo tu HTML/MD con logos e imágenes)
 # -----------------------------------------
-# (copia aquí todo tu bloque de logos, imágenes, header, yape, etc.)
 
 # -----------------------------------------
 # Función para recalcular montos
 # -----------------------------------------
 def recalc(df: pd.DataFrame) -> pd.DataFrame:
     df = df.copy()
-    df["Monto"] = pd.to_numeric(df["Monto"], errors="coerce")
-    df["Multiplicado"] = df["Monto"] * 1.8
+    df["Monto"]         = pd.to_numeric(df["Monto"], errors="coerce")
+    df["Multiplicado"]  = df["Monto"] * 1.8
     return df.fillna({
         "Nombre": "",
         "Monto": 0.0,
@@ -189,9 +187,10 @@ def recalc(df: pd.DataFrame) -> pd.DataFrame:
 if st.session_state.is_admin:
     with st.container():
         st.markdown("<div class='tabla-container'>", unsafe_allow_html=True)
-        initial_df = recalc(st.session_state.df_bets)
-        edited = st.data_editor(
-            initial_df,
+        # Partimos siempre del borrador recalc
+        initial = recalc(st.session_state.edited_df)
+        edited  = st.data_editor(
+            initial,
             column_config={
                 "Nombre":       st.column_config.TextColumn("Nombre"),
                 "Monto":        st.column_config.NumberColumn("Monto", step=1.0, format="%.2f"),
@@ -204,16 +203,20 @@ if st.session_state.is_admin:
             num_rows="dynamic",
             use_container_width=True
         )
-        # Guardamos el DataFrame editado en sesión, pero NO lo vuelcas aún:
-        st.session_state["edited_df"] = edited.copy()
+        # Actualizamos inmediatamente el borrador,
+        # de modo que en el siguiente rerun Multiplicado refleje el cambio
+        st.session_state.edited_df = recalc(edited)
         st.markdown("</div>", unsafe_allow_html=True)
 
 # -----------------------------------------
 # Métricas siempre visibles
 # -----------------------------------------
-df = st.session_state.df_bets
-sum_r      = df[df["Equipo"] == "Radiant"]["Monto"].sum()
-sum_d      = df[df["Equipo"] == "Dire"]["Monto"].sum()
+df_to_show = (st.session_state.edited_df
+              if st.session_state.is_admin
+              else st.session_state.df_bets)
+
+sum_r      = df_to_show[df_to_show["Equipo"] == "Radiant"]["Monto"].sum()
+sum_d      = df_to_show[df_to_show["Equipo"] == "Dire"]["Monto"].sum()
 difference = abs(sum_r - sum_d)
 
 with st.container():
@@ -223,6 +226,4 @@ with st.container():
     c2.metric("Dire",    f"{sum_d:.2f}")
     c3.metric("Diferencia", f"{difference:.2f}")
     st.markdown("</div>", unsafe_allow_html=True)
-
-
 
