@@ -5,6 +5,7 @@ import pandas as pd
 import psycopg2
 import os
 import re
+import bcrypt
 
 # -----------------------------------------
 # Configuración de la página
@@ -27,8 +28,12 @@ def to_base64(img_path: Path) -> str:
 def get_db_connection():
     return psycopg2.connect(DATABASE_URL, sslmode="require")
 
+# Validación de inputs
 def valid_password(pw: str) -> bool:
     return bool(re.match(r'^(?=.*[A-Z])(?=.*\W).{7,}$', pw))
+
+def valid_username(usr: str) -> bool:
+    return bool(re.match(r'^[A-Za-z0-9_]{3,20}$', usr))
 
 # -----------------------------------------
 # Inicializar Base de Datos
@@ -48,12 +53,13 @@ def init_db():
             notas TEXT,
             updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )""")
-    # Crear tabla de apostadores
+    # Crear tabla de apostadores con columna de coins
     cur.execute("""
         CREATE TABLE IF NOT EXISTS users_apostador (
             id SERIAL PRIMARY KEY,
             username TEXT UNIQUE,
             password TEXT,
+            coins INT DEFAULT 0,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )""")
     conn.commit(); cur.close(); conn.close()
@@ -98,6 +104,8 @@ if 'apostador' not in st.session_state:
     st.session_state.apostador = None
 if 'apostador_user' not in st.session_state:
     st.session_state.apostador_user = None
+if 'coins' not in st.session_state:
+    st.session_state.coins = 0
 
 auth_sidebar = st.sidebar
 
@@ -130,67 +138,81 @@ with auth_sidebar.expander("Login / Registro", expanded=True):
     conn = get_db_connection(); cur = conn.cursor()
     if mode=="Registrarse":
         if st.button("Crear cuenta"):
-            if not valid_password(pwd):
+            # Validaciones
+            if not valid_username(usr):
+                st.error("Usuario inválido: 3-20 caracteres alfanuméricos o underscore.")
+            elif not valid_password(pwd):
                 st.error("La contraseña requiere 7+ caract., 1 mayúscula y 1 símbolo.")
             else:
                 try:
+                    hashed = bcrypt.hashpw(pwd.encode(), bcrypt.gensalt()).decode()
                     cur.execute(
                         "INSERT INTO users_apostador (username,password) VALUES (%s,%s)",
-                        (usr,pwd)
+                        (usr, hashed)
                     )
                     conn.commit(); st.success("Cuenta creada. Ahora ingresa.")
                 except psycopg2.IntegrityError:
                     st.error("El usuario ya existe.")
     else:
         if st.button("Ingresar"):
-            cur.execute(
-                "SELECT id FROM users_apostador WHERE username=%s AND password=%s",(usr,pwd)
-            )
-            rec = cur.fetchone()
-            if rec:
-                st.session_state.apostador = rec[0]
-                st.session_state.apostador_user = usr
-                st.success(f"Bienvenido, {usr}")
+            if not valid_username(usr):
+                st.error("Usuario inválido.")
             else:
-                st.error("Usuario o contraseña incorrectos.")
+                cur.execute(
+                    "SELECT id,password,coins FROM users_apostador WHERE username=%s",(usr,)
+                )
+                rec = cur.fetchone()
+                if rec and bcrypt.checkpw(pwd.encode(), rec[1].encode()):
+                    st.session_state.apostador = rec[0]
+                    st.session_state.apostador_user = usr
+                    st.session_state.coins = rec[2]
+                    st.success(f"Bienvenido, {usr}")
+                else:
+                    st.error("Usuario o contraseña incorrectos.")
     cur.close(); conn.close()
 
 # Si apostador logueado, mostrar indicador y boton de logout, ocultar Admin
 if st.session_state.apostador:
     auth_sidebar.markdown("---")
     auth_sidebar.markdown(f"**👤 Conectado como:** {st.session_state.apostador_user}")
+    # Mostrar saldo de ÑataCoins
+    auth_sidebar.markdown(f"**Saldo:** {st.session_state.coins} ÑataCoins")
     if auth_sidebar.button("Cerrar sesión Apostador"):
         st.session_state.apostador = None
         st.session_state.apostador_user = None
+        st.session_state.coins = 0
         st.success("Sesión de apostador cerrada.")
 
-# Sección Cambio de contraseña (solo Admin y sin apostador)
+# Sección para agregar ÑataCoins (solo Admin y sin apostador)
 if st.session_state.is_admin and st.session_state.apostador is None:
     auth_sidebar.markdown("---")
-    with auth_sidebar.expander("🔑 Cambio de contraseña", expanded=False):
-        user_cp = st.text_input("Usuario a modificar", key="cp_user")
-        new_pw  = st.text_input("Nueva contraseña", type="password", key="cp_pwd")
-        if st.button("Actualizar contraseña"):
-            conn = get_db_connection(); cur = conn.cursor()
-            cur.execute("SELECT id FROM users_apostador WHERE username=%s", (user_cp,))
-            rec = cur.fetchone()
-            if not rec:
-                st.error("Apostador no registrado.")
-            elif not valid_password(new_pw):
-                st.error("La nueva contraseña requiere 7+ caract., 1 mayúscula y 1 símbolo.")
+    with auth_sidebar.expander("💰 AGREGAR ÑATA COINS", expanded=False):
+        user_coin = st.text_input("Usuario", key="coin_user")
+        coin_amt = st.number_input("ÑataCoins", min_value=0, step=1, key="coin_amt")
+        if st.button("Agregar Coins"):
+            if not valid_username(user_coin):
+                st.error("Usuario inválido.")
             else:
-                cur.execute(
-                    "UPDATE users_apostador SET password=%s WHERE username=%s", (new_pw, user_cp)
-                )
-                conn.commit(); st.success("Contraseña actualizada exitosamente.")
-            cur.close(); conn.close()
+                conn = get_db_connection(); cur = conn.cursor()
+                cur.execute("SELECT coins FROM users_apostador WHERE username=%s", (user_coin,))
+                rc = cur.fetchone()
+                if not rc:
+                    st.error("Usuario no encontrado.")
+                else:
+                    new_total = rc[0] + coin_amt
+                    cur.execute(
+                        "UPDATE users_apostador SET coins=%s WHERE username=%s",
+                        (new_total, user_coin)
+                    )
+                    conn.commit(); st.success(f"Saldo actualizado: {new_total} ÑataCoins para {user_coin}")
+                cur.close(); conn.close()
     # Listado de apostadores
     auth_sidebar.markdown("---")
     with auth_sidebar.expander("📋 Listado de apostadores", expanded=False):
         conn = get_db_connection(); cur = conn.cursor()
-        cur.execute("SELECT username, created_at FROM users_apostador ORDER BY created_at DESC")
+        cur.execute("SELECT username, coins, created_at FROM users_apostador ORDER BY created_at DESC")
         rows = cur.fetchall(); cur.close(); conn.close()
-        df_users = pd.DataFrame(rows, columns=["Usuario","Creado en"])
+        df_users = pd.DataFrame(rows, columns=["Usuario","Coins","Creado en"])
         auth_sidebar.dataframe(df_users, use_container_width=True)
 
 # -----------------------------------------
