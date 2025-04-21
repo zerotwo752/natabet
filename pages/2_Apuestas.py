@@ -102,7 +102,7 @@ if 'apostador_user' not in st.session_state:
 
 auth_sidebar = st.sidebar
 
-# Admin login
+# Admin (solo si no hay apostador logueado)
 if st.session_state.apostador is None:
     auth_sidebar.markdown("### 👑 Admin")
     with auth_sidebar.expander("Admin Login", expanded=True):
@@ -121,45 +121,46 @@ if st.session_state.apostador is None:
                 st.session_state.is_admin = False
 
 # Separador
- auth_sidebar.markdown("---")
+auth_sidebar.markdown("---")
 # Sección Apostador
- auth_sidebar.markdown("### 🎲 Apostador")
- with auth_sidebar.expander("Login / Registro", expanded=True):
-     mode = st.radio("Selecciona acción", ("Login","Registrarse"), key="mode_user")
-     usr = st.text_input("Usuario", key="usr")
-     pwd = st.text_input("Contraseña", type="password", key="pwd")
-     conn = get_db_connection(); cur = conn.cursor()
-     if mode=="Registrarse":
-         if st.button("Crear cuenta"):
-             if not valid_password(pwd):
-                 st.error("La contraseña requiere 7+ caract., 1 mayúscula y 1 símbolo.")
-             else:
-                 try:
-                     cur.execute(
-                         "INSERT INTO users_apostador (username,password) VALUES (%s,%s)",
-                         (usr,pwd)
-                     )
-                     conn.commit(); st.success("Cuenta creada. Ahora ingresa.")
-                 except psycopg2.IntegrityError:
-                     st.error("El usuario ya existe.")
-     else:
-         if st.button("Ingresar"):
-             cur.execute(
-                 "SELECT id FROM users_apostador WHERE username=%s AND password=%s",(usr,pwd)
-             )
-             rec = cur.fetchone()
-             if rec:
-                 st.session_state.apostador = rec[0]
-                 st.session_state.apostador_user = usr
-                 st.success(f"Bienvenido, {usr}")
-             else:
-                 st.error("Usuario o contraseña incorrectos.")
-     cur.close(); conn.close()
+auth_sidebar.markdown("### 🎲 Apostador")
+with auth_sidebar.expander("Login / Registro", expanded=True):
+    mode = st.radio("Selecciona acción", ("Login","Registrarse"), key="mode_user")
+    usr = st.text_input("Usuario", key="usr")
+    pwd = st.text_input("Contraseña", type="password", key="pwd")
+    conn = get_db_connection(); cur = conn.cursor()
+    if mode=="Registrarse":
+        if st.button("Crear cuenta"):
+            if not valid_password(pwd):
+                st.error("La contraseña requiere 7+ caract., 1 mayúscula y 1 símbolo.")
+            else:
+                try:
+                    cur.execute(
+                        "INSERT INTO users_apostador (username,password) VALUES (%s,%s)",
+                        (usr,pwd)
+                    )
+                    conn.commit(); st.success("Cuenta creada. Ahora ingresa.")
+                except psycopg2.IntegrityError:
+                    st.error("El usuario ya existe.")
+    else:
+        if st.button("Ingresar"):
+            cur.execute(
+                "SELECT id FROM users_apostador WHERE username=%s AND password=%s",(usr,pwd)
+            )
+            rec = cur.fetchone()
+            if rec:
+                st.session_state.apostador = rec[0]
+                st.session_state.apostador_user = usr
+                st.success(f"Bienvenido, {usr}")
+            else:
+                st.error("Usuario o contraseña incorrectos.")
+    cur.close(); conn.close()
 
-# Si apostador logueado
+# Si apostador logueado, mostrar indicador, saldo y botón de logout
 if st.session_state.apostador:
     auth_sidebar.markdown("---")
     auth_sidebar.markdown(f"**👤 Conectado como:** {st.session_state.apostador_user}")
+    # Obtener saldo actualizado
     conn = get_db_connection(); cur = conn.cursor()
     cur.execute("SELECT coins FROM users_apostador WHERE id=%s", (st.session_state.apostador,))
     coins = cur.fetchone()[0]
@@ -170,7 +171,7 @@ if st.session_state.apostador:
         st.session_state.apostador_user = None
         st.success("Sesión de apostador cerrada.")
 
-# Admin tools
+# Sección Cambio de contraseña (solo Admin y sin apostador)
 if st.session_state.is_admin and st.session_state.apostador is None:
     auth_sidebar.markdown("---")
     with auth_sidebar.expander("🔑 Cambio de contraseña", expanded=False):
@@ -190,6 +191,7 @@ if st.session_state.is_admin and st.session_state.apostador is None:
                 )
                 conn.commit(); st.success("Contraseña actualizada exitosamente.")
             cur.close(); conn.close()
+    # Listado de apostadores con saldo
     auth_sidebar.markdown("---")
     with auth_sidebar.expander("📋 Listado de apostadores", expanded=False):
         conn = get_db_connection(); cur = conn.cursor()
@@ -199,29 +201,25 @@ if st.session_state.is_admin and st.session_state.apostador is None:
         auth_sidebar.dataframe(df_users, use_container_width=True)
 
     # -----------------------------------------
-    # AGREGAR / QUITAR ÑATA COINS
+    # AGREGAR ÑATA COINS
     # -----------------------------------------
     auth_sidebar.markdown("---")
-    with auth_sidebar.expander("💰 AGREGAR / QUITAR ÑATA COINS", expanded=False):
+    with auth_sidebar.expander("💰 AGREGAR ÑATA COINS", expanded=False):
         user_coin = st.text_input("Usuario", key="coin_user")
-        add_amt    = st.number_input("Dar ÑataCoins", min_value=0, step=1, key="coin_add")
-        remove_amt= st.number_input("Quitar ÑataCoins", min_value=0, step=1, key="coin_remove")
-        if st.button("Actualizar Coins"):
+        coin_amt  = st.number_input("ÑataCoins", min_value=0, step=1, key="coin_amt")
+        if st.button("Agregar Coins"):
             conn = get_db_connection(); cur = conn.cursor()
             cur.execute("SELECT coins FROM users_apostador WHERE username=%s", (user_coin,))
             rc = cur.fetchone()
             if not rc:
                 st.error("Usuario no encontrado.")
             else:
-                new_total = rc[0] + add_amt - remove_amt
-                if new_total < 0:
-                    st.error("Saldo insuficiente para quitar esa cantidad.")
-                else:
-                    cur.execute(
-                        "UPDATE users_apostador SET coins=%s WHERE username=%s",
-                        (new_total, user_coin)
-                    )
-                    conn.commit(); st.success(f"Saldo actualizado: {new_total} ÑataCoins para {user_coin}")
+                new_total = rc[0] + coin_amt
+                cur.execute(
+                    "UPDATE users_apostador SET coins=%s WHERE username=%s",
+                    (new_total, user_coin)
+                )
+                conn.commit(); st.success(f"Saldo actualizado: {new_total} ÑataCoins para {user_coin}")
             cur.close(); conn.close()
 
 # -----------------------------------------
@@ -255,3 +253,4 @@ for i, tab in enumerate(tabs, start=1):
         st.subheader(f"Apuestas - Game {i}")
         st.info("Aquí irá la tabla de apuestas para este juego.")
         # TODO: lógica de mostrar y edición de apuestas
+
