@@ -11,7 +11,7 @@ import re
 # -----------------------------------------
 st.set_page_config(layout="wide")
 
-# Definir rutas base de recursos
+# Rutas base de recursos
 BASE_DIR  = Path(__file__).parent.parent
 IMAGES_DIR= BASE_DIR/"imagenes"
 SOCIAL_DIR= BASE_DIR/"social"
@@ -27,7 +27,6 @@ def to_base64(img_path: Path) -> str:
 def get_db_connection():
     return psycopg2.connect(DATABASE_URL, sslmode="require")
 
-# Verificar formato de contraseña
 def valid_password(pw: str) -> bool:
     return bool(re.match(r'^(?=.*[A-Z])(?=.*\W).{7,}$', pw))
 
@@ -38,7 +37,6 @@ def valid_password(pw: str) -> bool:
 def init_db():
     conn = get_db_connection()
     cur = conn.cursor()
-    # Crear tabla de apuestas
     cur.execute("""
         CREATE TABLE IF NOT EXISTS bets (
             id SERIAL PRIMARY KEY,
@@ -49,7 +47,6 @@ def init_db():
             notas TEXT,
             updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )""")
-    # Crear tabla de apostadores
     cur.execute("""
         CREATE TABLE IF NOT EXISTS users_apostador (
             id SERIAL PRIMARY KEY,
@@ -58,8 +55,6 @@ def init_db():
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )""")
     conn.commit(); cur.close(); conn.close()
-
-# Ejecutar aplicación
 
 init_db()
 
@@ -93,41 +88,51 @@ st.markdown(f"""
 """, unsafe_allow_html=True)
 
 # -----------------------------------------
-# Sidebar: Admin + Apostador
+# Sidebar: Admin (oculto si apostador logeado)
 # -----------------------------------------
-st.sidebar.markdown("### 👑 Admin")
+# Inicializar flags en sesión
 if 'is_admin' not in st.session_state:
     st.session_state.is_admin = False
-with st.sidebar.expander("Admin Login", expanded=True):
-    if not st.session_state.is_admin:
-        user = st.text_input("Usuario Admin", key="admin_user")
-        pwd  = st.text_input("Contraseña", type="password", key="admin_pwd")
-        if st.button("Ingresar Admin"):
-            if user=='yair' and pwd=='yair123':
-                st.session_state.is_admin = True; st.success("Admin autenticado")
-            else: st.error("Credenciales incorrectas")
-    else:
-        st.write("Admin conectado")
-        if st.button("Cerrar sesión Admin"): st.session_state.is_admin=False
-
-st.sidebar.markdown("---")
-st.sidebar.markdown("### 🎲 Apostador")
 if 'apostador' not in st.session_state:
     st.session_state.apostador = None
-with st.sidebar.expander("Login / Registro", expanded=True):
+if 'apostador_user' not in st.session_state:
+    st.session_state.apostador_user = None
+
+# Mostrar Admin solo si NO hay apostador logeado
+auth_sidebar = st.sidebar
+if st.session_state.apostador is None:
+    auth_sidebar.markdown("### 👑 Admin")
+    with auth_sidebar.expander("Admin Login", expanded=True):
+        if not st.session_state.is_admin:
+            user = st.text_input("Usuario Admin", key="admin_user")
+            pwd  = st.text_input("Contraseña", type="password", key="admin_pwd")
+            if st.button("Ingresar Admin"):
+                if user=='yair' and pwd=='yair123':
+                    st.session_state.is_admin = True; st.success("Admin autenticado")
+                else: st.error("Credenciales incorrectas")
+        else:
+            auth_sidebar.write("Admin conectado")
+            if st.button("Cerrar sesión Admin"): st.session_state.is_admin=False
+
+# -----------------------------------------
+# Sidebar: Apostador (registro/login)
+# -----------------------------------------
+auth_sidebar.markdown("---")
+auth_sidebar.markdown("### 🎲 Apostador")
+with auth_sidebar.expander("Login / Registro", expanded=True):
     mode = st.radio("Selecciona acción", ("Login","Registrarse"), key="mode_user")
-    username = st.text_input("Usuario", key="usr")
-    password = st.text_input("Contraseña", type="password", key="pwd")
+    usr = st.text_input("Usuario", key="usr")
+    pwd = st.text_input("Contraseña", type="password", key="pwd")
     conn = get_db_connection(); cur = conn.cursor()
     if mode=="Registrarse":
         if st.button("Crear cuenta"):
-            if not valid_password(password):
+            if not valid_password(pwd):
                 st.error("La contraseña requiere 7+ caract., 1 mayúscula y 1 símbolo.")
             else:
                 try:
                     cur.execute(
                         "INSERT INTO users_apostador (username,password) VALUES (%s,%s)",
-                        (username,password)
+                        (usr,pwd)
                     )
                     conn.commit(); st.success("Cuenta creada. Ahora ingresa.")
                 except psycopg2.IntegrityError:
@@ -135,20 +140,27 @@ with st.sidebar.expander("Login / Registro", expanded=True):
     else:
         if st.button("Ingresar"):
             cur.execute(
-                "SELECT id FROM users_apostador WHERE username=%s AND password=%s",(username,password)
+                "SELECT id FROM users_apostador WHERE username=%s AND password=%s",(usr,pwd)
             )
             rec = cur.fetchone()
             if rec:
-                st.session_state.apostador = rec[0]; st.success(f"Bienvenido, {username}")
+                st.session_state.apostador = rec[0]
+                st.session_state.apostador_user = usr
+                st.success(f"Bienvenido, {usr}")
             else: st.error("Usuario o contraseña incorrectos.")
     cur.close(); conn.close()
+
+# Si apostador logeado, mostrar indicador y ocultar admin
+if st.session_state.apostador:
+    auth_sidebar.markdown("---")
+    auth_sidebar.markdown(f"**👤 Conectado como:** {st.session_state.apostador_user}")
 
 # -----------------------------------------
 # Cambio de contraseña (solo admin)
 # -----------------------------------------
-if st.session_state.is_admin:
-    st.sidebar.markdown("---")
-    with st.sidebar.expander("🔑 Cambio de contraseña", expanded=False):
+if st.session_state.is_admin and st.session_state.apostador is None:
+    auth_sidebar.markdown("---")
+    with auth_sidebar.expander("🔑 Cambio de contraseña", expanded=False):
         user_cp = st.text_input("Usuario a modificar", key="cp_user")
         new_pw  = st.text_input("Nueva contraseña", type="password", key="cp_pwd")
         if st.button("Actualizar contraseña"):
@@ -196,4 +208,4 @@ for i, tab in enumerate(tabs, start=1):
     with tab:
         st.subheader(f"Apuestas - Game {i}")
         st.info("Aquí irá la tabla de apuestas para este juego.")
-        # TODO: lógica de mostr y edición de apuestas
+        # TODO: lógica de mostrar y edición de apuestas
