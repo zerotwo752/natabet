@@ -37,6 +37,7 @@ def valid_password(pw: str) -> bool:
 def init_db():
     conn = get_db_connection()
     cur = conn.cursor()
+    # Crear tabla de apuestas
     cur.execute("""
         CREATE TABLE IF NOT EXISTS bets (
             id SERIAL PRIMARY KEY,
@@ -47,6 +48,7 @@ def init_db():
             notas TEXT,
             updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )""")
+    # Crear tabla de apostadores
     cur.execute("""
         CREATE TABLE IF NOT EXISTS users_apostador (
             id SERIAL PRIMARY KEY,
@@ -88,9 +90,8 @@ st.markdown(f"""
 """, unsafe_allow_html=True)
 
 # -----------------------------------------
-# Sidebar: Auth (Admin & Apostador)
+# Sidebar: Autenticación
 # -----------------------------------------
-# Inicializar sesión
 if 'is_admin' not in st.session_state:
     st.session_state.is_admin = False
 if 'apostador' not in st.session_state:
@@ -100,7 +101,7 @@ if 'apostador_user' not in st.session_state:
 
 auth_sidebar = st.sidebar
 
-# Sección Admin (solo si no hay apostador logueado)
+# Admin (solo si no hay apostador logueado)
 if st.session_state.apostador is None:
     auth_sidebar.markdown("### 👑 Admin")
     with auth_sidebar.expander("Admin Login", expanded=True):
