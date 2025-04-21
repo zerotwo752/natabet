@@ -48,7 +48,7 @@ def init_db():
             notas TEXT,
             updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )""")
-    # Crear tabla de apostadores
+    # Crear tabla de apostadores (agregar columna coins si no existe)
     cur.execute("""
         CREATE TABLE IF NOT EXISTS users_apostador (
             id SERIAL PRIMARY KEY,
@@ -56,6 +56,8 @@ def init_db():
             password TEXT,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )""")
+    # Asegurar columna coins para ÑataCoins
+    cur.execute("ALTER TABLE users_apostador ADD COLUMN IF NOT EXISTS coins INT DEFAULT 0")
     conn.commit(); cur.close(); conn.close()
 
 init_db()
@@ -193,6 +195,28 @@ if st.session_state.is_admin and st.session_state.apostador is None:
         df_users = pd.DataFrame(rows, columns=["Usuario","Creado en"])
         auth_sidebar.dataframe(df_users, use_container_width=True)
 
+    # -----------------------------------------
+    # AGREGAR ÑATA COINS
+    # -----------------------------------------
+    auth_sidebar.markdown("---")
+    with auth_sidebar.expander("💰 AGREGAR ÑATA COINS", expanded=False):
+        user_coin = st.text_input("Usuario", key="coin_user")
+        coin_amt  = st.number_input("ÑataCoins", min_value=0, step=1, key="coin_amt")
+        if st.button("Agregar Coins"):
+            conn = get_db_connection(); cur = conn.cursor()
+            cur.execute("SELECT coins FROM users_apostador WHERE username=%s", (user_coin,))
+            rc = cur.fetchone()
+            if not rc:
+                st.error("Usuario no encontrado.")
+            else:
+                new_total = rc[0] + coin_amt
+                cur.execute(
+                    "UPDATE users_apostador SET coins=%s WHERE username=%s",
+                    (new_total, user_coin)
+                )
+                conn.commit(); st.success(f"Saldo actualizado: {new_total} ÑataCoins para {user_coin}")
+            cur.close(); conn.close()
+
 # -----------------------------------------
 # Header: Logo, título y redes sociales
 # -----------------------------------------
@@ -224,3 +248,4 @@ for i, tab in enumerate(tabs, start=1):
         st.subheader(f"Apuestas - Game {i}")
         st.info("Aquí irá la tabla de apuestas para este juego.")
         # TODO: lógica de mostrar y edición de apuestas
+
