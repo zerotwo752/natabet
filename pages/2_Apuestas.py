@@ -138,8 +138,7 @@ with auth_sidebar.expander("Login / Registro", expanded=True):
                         "INSERT INTO users_apostador (username,password) VALUES (%s,%s)",
                         (usr,pwd)
                     )
-                    conn.commit()
-                    st.success("Cuenta creada. Ahora ingresa.")
+                    conn.commit(); st.success("Cuenta creada. Ahora ingresa.")
                 except psycopg2.IntegrityError:
                     st.error("El usuario ya existe.")
     else:
@@ -185,6 +184,14 @@ if st.session_state.is_admin and st.session_state.apostador is None:
                 )
                 conn.commit(); st.success("Contraseña actualizada exitosamente.")
             cur.close(); conn.close()
+    # Listado de apostadores
+    auth_sidebar.markdown("---")
+    with auth_sidebar.expander("📋 Listado de apostadores", expanded=False):
+        conn = get_db_connection(); cur = conn.cursor()
+        cur.execute("SELECT username, created_at FROM users_apostador ORDER BY created_at DESC")
+        rows = cur.fetchall(); cur.close(); conn.close()
+        df_users = pd.DataFrame(rows, columns=["Usuario","Creado en"])
+        auth_sidebar.dataframe(df_users, use_container_width=True)
 
 # -----------------------------------------
 # Header: Logo, título y redes sociales
