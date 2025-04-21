@@ -51,12 +51,8 @@ def init_db():
             username TEXT,
             monto INT,
             equipo TEXT,
-            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )""")
-    # Asegurar campo created_at para historial
-    cur.execute(
-        "ALTER TABLE bets ADD COLUMN IF NOT EXISTS created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP"
-    )
     # Tabla de apostadores
     cur.execute("""
         CREATE TABLE IF NOT EXISTS users_apostador (
@@ -77,34 +73,39 @@ auto_init = init_db()
 # Funciones de Apuestas
 # -----------------------------------------
 def get_bets(game_id):
-    conn = get_db_connection(); cur = conn.cursor()
+    conn = get_db_connection()
+    cur = conn.cursor()
     cur.execute(
-        "SELECT id, username, monto, equipo, created_at FROM bets WHERE game_id=%s ORDER BY created_at",
+        "SELECT id, username, monto, equipo, created_at FROM bets WHERE game_id = %s ORDER BY created_at",
         (game_id,)
     )
     rows = cur.fetchall()
-    cur.close(); conn.close()
+    cur.close()
+    conn.close()
     return rows
 
 
 def get_summary(game_id):
     bets = get_bets(game_id)
-    total_r = sum(m for (_,_,m,e,_) in bets if e == 'Radiant')
-    total_d = sum(m for (_,_,m,e,_) in bets if e == 'Dire')
+    total_r = sum(m for (_, _, m, equipo, _) in bets if equipo == 'Radiant')
+    total_d = sum(m for (_, _, m, equipo, _) in bets if equipo == 'Dire')
     diff = abs(total_r - total_d)
     return total_r, total_d, diff
 
 
 def place_bet(game_id, username, amount, team):
-    conn = get_db_connection(); cur = conn.cursor()
-    cur.execute("SELECT coins FROM users_apostador WHERE username=%s", (username,))
+    conn = get_db_connection()
+    cur = conn.cursor()
+    cur.execute("SELECT coins FROM users_apostador WHERE username = %s", (username,))
     result = cur.fetchone()
     if not result:
-        cur.close(); conn.close()
+        cur.close()
+        conn.close()
         return False, "Usuario no existe"
     coins = result[0]
     if amount > coins:
-        cur.close(); conn.close()
+        cur.close()
+        conn.close()
         return False, "Saldo insuficiente"
     # Descontar monedas
     cur.execute(
@@ -117,7 +118,8 @@ def place_bet(game_id, username, amount, team):
         (game_id, username, amount, team)
     )
     conn.commit()
-    cur.close(); conn.close()
+    cur.close()
+    conn.close()
     return True, None
 
 
@@ -126,69 +128,88 @@ def settle_bets(game_id, winner):
     losers = [b for b in bets if b[3] != winner]
     winners = [b for b in bets if b[3] == winner]
     # Fondo de perdedores
-    pool = sum(m for (_,_,m,_,_) in losers)
+    pool = sum(m for (_, _, m, _, _) in losers)
     remaining = pool
-    conn = get_db_connection(); cur = conn.cursor()
-    for bet_id, user, amount, team, ts in winners:
+    conn = get_db_connection()
+    cur = conn.cursor()
+    for _, user, amount, _, _ in winners:
         if remaining <= 0:
-            # Reembolso total
-            credit = amount
+            credit = amount  # reembolso total
         elif remaining >= amount:
-            # Pago completo
             credit = int(amount * 1.8)
             remaining -= amount
         else:
-            # Pago parcial y reembolso del resto
             matched = remaining
             credit = int(matched * 1.8) + (amount - matched)
             remaining = 0
-        # Actualizar balance del ganador
         cur.execute(
             "UPDATE users_apostador SET coins = coins + %s WHERE username = %s",
             (credit, user)
         )
-    # Limpiar apuestas de este juego
+    # Eliminar apuestas del juego
     cur.execute("DELETE FROM bets WHERE game_id = %s", (game_id,))
-    conn.commit(); cur.close(); conn.close()
+    conn.commit()
+    cur.close()
+    conn.close()
 
 
 def delete_user_bets(game_id, username):
     bets = get_bets(game_id)
-    # Filtrar por usuario
-total_refund = sum(m for (_,u,m,_,_) in bets if u == username)
-    conn = get_db_connection(); cur = conn.cursor()
-    # Eliminar
+    total_refund = sum(m for (_, u, m, _, _) in bets if u == username)
+    conn = get_db_connection()
+    cur = conn.cursor()
     cur.execute(
         "DELETE FROM bets WHERE game_id = %s AND username = %s",
         (game_id, username)
     )
-    # Reembolsar
     cur.execute(
         "UPDATE users_apostador SET coins = coins + %s WHERE username = %s",
         (total_refund, username)
     )
-    conn.commit(); cur.close(); conn.close()
+    conn.commit()
+    cur.close()
+    conn.close()
 
 # -----------------------------------------
 # CSS global: fondo y estilos
 # -----------------------------------------
 st.markdown(f"""
 <style>
-.stApp {{ background: url(\"data:image/gif;base64,{to_base64(SOCIAL_DIR/ 'pato.gif')}\") center/cover fixed #000; color:#FFF; }}
-.header-container {{ display:flex; justify-content:space-between; align-items:center; padding:10px; }}
-.header-container h1 {{ font-size:3rem; -webkit-text-stroke:1px purple; text-shadow:1px 1px 0 purple; margin:0; }}
-.header-container img {{ width:40px; margin-left:10px; }}
+.stApp {{
+  background: url(\"data:image/gif;base64,{to_base64(SOCIAL_DIR / 'pato.gif')}\") center/cover fixed #000;
+  color: #FFF !important;
+}}
+.header-container {{
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px;
+}}
+.header-container h1 {{
+  font-size: 3rem;
+  -webkit-text-stroke: 1px purple;
+  text-shadow: 1px 1px 0 purple;
+  margin: 0;
+}}
+.header-container img {{
+  width: 40px;
+  margin-left: 10px;
+}}
 </style>
 """, unsafe_allow_html=True)
 
 # -----------------------------------------
 # Sidebar: Autenticación y Admin
 # -----------------------------------------
-if 'is_admin' not in st.session_state: st.session_state.is_admin = False
-if 'apostador' not in st.session_state: st.session_state.apostador = None
-if 'apostador_user' not in st.session_state: st.session_state.apostador_user = None
+if 'is_admin' not in st.session_state:
+    st.session_state.is_admin = False
+if 'apostador' not in st.session_state:
+    st.session_state.apostador = None
+if 'apostador_user' not in st.session_state:
+    st.session_state.apostador_user = None
 
 auth = st.sidebar
+
 # Admin Login
 auth.markdown("### 👑 Admin")
 with auth.expander("Admin Login", expanded=True):
@@ -196,31 +217,45 @@ with auth.expander("Admin Login", expanded=True):
         u = st.text_input("Usuario Admin", key="admin_u")
         p = st.text_input("Contraseña Admin", type="password", key="admin_p")
         if st.button("Ingresar Admin"):
-            if u=='yair' and p=='yair123': st.session_state.is_admin=True; st.success("Admin autenticado")
-            else: st.error("Credenciales incorrectas")
+            if u == 'yair' and p == 'yair123':
+                st.session_state.is_admin = True
+                st.success("Admin autenticado")
+            else:
+                st.error("Credenciales incorrectas")
     else:
         st.write("Admin conectado")
-        if st.button("Cerrar sesión Admin"): st.session_state.is_admin=False
+        if st.button("Cerrar sesión Admin"):
+            st.session_state.is_admin = False
 
 # Separador
 auth.markdown("---")
-# Apostador
+
+# Apostador (Login/Registro)
 auth.markdown("### 🎲 Apostador")
 with auth.expander("Login / Registro", expanded=True):
-    mode = st.radio("Acción", ("Login","Registrarse"), key="mode_user")
+    mode = st.radio("Acción", ("Login", "Registrarse"), key="mode_user")
     usr = st.text_input("Usuario", key="usr")
     pwd = st.text_input("Contraseña", type="password", key="pwd")
-    conn = get_db_connection(); cur = conn.cursor()
+    conn = get_db_connection()
+    cur = conn.cursor()
     if mode == "Registrarse" and st.button("Crear cuenta"):
-        if not valid_password(pwd): st.error("La contraseña requiere 7+ caract., 1 mayúscula y 1 símbolo.")
+        if not valid_password(pwd):
+            st.error("La contraseña requiere 7+ caract., 1 mayúscula y 1 símbolo.")
         else:
             try:
-                cur.execute("INSERT INTO users_apostador(username,password) VALUES (%s,%s)", (usr,pwd))
-                conn.commit(); st.success("Cuenta creada. Ingresa ahora.")
+                cur.execute(
+                    "INSERT INTO users_apostador (username, password) VALUES (%s, %s)",
+                    (usr, pwd)
+                )
+                conn.commit()
+                st.success("Cuenta creada. Ingresa ahora.")
             except psycopg2.IntegrityError:
                 st.error("El usuario ya existe.")
     if mode == "Login" and st.button("Ingresar"):
-        cur.execute("SELECT id FROM users_apostador WHERE username=%s AND password=%s", (usr,pwd))
+        cur.execute(
+            "SELECT id FROM users_apostador WHERE username = %s AND password = %s",
+            (usr, pwd)
+        )
         rec = cur.fetchone()
         if rec:
             st.session_state.apostador = rec[0]
@@ -228,66 +263,103 @@ with auth.expander("Login / Registro", expanded=True):
             st.success(f"Bienvenido, {usr}")
         else:
             st.error("Usuario o contraseña incorrectos.")
-    cur.close(); conn.close()
+    cur.close()
+    conn.close()
 
-# Muestra saldo si apostador
+# Mostrar saldo si apostador logueado
 if st.session_state.apostador:
     auth.markdown("---")
     auth.write(f"👤 {st.session_state.apostador_user}")
-    conn = get_db_connection(); cur = conn.cursor()
-    cur.execute("SELECT coins FROM users_apostador WHERE id=%s", (st.session_state.apostador,))
+    conn = get_db_connection()
+    cur = conn.cursor()
+    cur.execute(
+        "SELECT coins FROM users_apostador WHERE id = %s",
+        (st.session_state.apostador,)
+    )
     balance = cur.fetchone()[0]
-    cur.close(); conn.close()
+    cur.close()
+    conn.close()
     auth.write(f"💰 {balance} ÑataCoins")
-    if auth.button("Cerrar sesión Apostador"): 
-        st.session_state.apostador = None; st.session_state.apostador_user=None; st.success("Sesión cerrada.")
+    if auth.button("Cerrar sesión Apostador"):
+        st.session_state.apostador = None
+        st.session_state.apostador_user = None
+        st.success("Sesión cerrada.")
 
-# Opciones de admin
+# Opciones de admin adicionales
 if st.session_state.is_admin and not st.session_state.apostador:
     auth.markdown("---")
     # Cambio de contraseña
     with auth.expander("🔑 Cambio de contraseña", expanded=False):
         user_cp = st.text_input("Usuario a modificar", key="cp_user")
-        new_pw  = st.text_input("Nueva contraseña", type="password", key="cp_pwd")
+        new_pw = st.text_input("Nueva contraseña", type="password", key="cp_pwd")
         if st.button("Actualizar contraseña"):
-            conn=get_db_connection();cur=conn.cursor()
-            cur.execute("SELECT id FROM users_apostador WHERE username=%s",(user_cp,))
-            if not cur.fetchone(): st.error("Apostador no registrado.")
-            elif not valid_password(new_pw): st.error("La nueva contraseña requiere 7+ caract., 1 mayúscula y 1 símbolo.")
+            conn = get_db_connection()
+            cur = conn.cursor()
+            cur.execute(
+                "SELECT id FROM users_apostador WHERE username = %s",
+                (user_cp,)
+            )
+            if not cur.fetchone():
+                st.error("Apostador no registrado.")
+            elif not valid_password(new_pw):
+                st.error("La nueva contraseña requiere 7+ caract., 1 mayúscula y 1 símbolo.")
             else:
-                cur.execute("UPDATE users_apostador SET password=%s WHERE username=%s",(new_pw,user_cp))
-                conn.commit(); st.success("Contraseña actualizada exitosamente.")
-            cur.close();conn.close()
-    # Listado de apostadores\    
+                cur.execute(
+                    "UPDATE users_apostador SET password = %s WHERE username = %s",
+                    (new_pw, user_cp)
+                )
+                conn.commit()
+                st.success("Contraseña actualizada exitosamente.")
+            cur.close()
+            conn.close()
+    # Listado de apostadores
     with auth.expander("📋 Listado de apostadores", expanded=False):
-        conn=get_db_connection();cur=conn.cursor()
-        cur.execute("SELECT username,coins,created_at FROM users_apostador ORDER BY created_at DESC")
-        rows=cur.fetchall();cur.close();conn.close()
-        df = pd.DataFrame(rows, columns=["Usuario","ÑataCoins","Creado en"])
+        conn = get_db_connection()
+        cur = conn.cursor()
+        cur.execute(
+            "SELECT username, coins, created_at FROM users_apostador ORDER BY created_at DESC"
+        )
+        rows = cur.fetchall()
+        cur.close()
+        conn.close()
+        df = pd.DataFrame(rows, columns=["Usuario", "ÑataCoins", "Creado en"])
         auth.dataframe(df, use_container_width=True)
-    # Administrar coins
+    # Administrar ÑataCoins
     with auth.expander("💰 Administrar ÑataCoins", expanded=False):
-        act = st.selectbox("Acción", ("Agregar","Quitar"), key="coin_act")
+        action = st.selectbox("Acción", ("Agregar", "Quitar"), key="coin_act")
         user_c = st.text_input("Usuario", key="coin_user")
-        amt    = st.number_input("Cantidad", min_value=0, step=1, key="coin_amt")
+        amt = st.number_input("Cantidad", min_value=0, step=1, key="coin_amt")
         if st.button("Ejecutar acción"):
-            conn=get_db_connection();cur=conn.cursor()
-            cur.execute("SELECT coins FROM users_apostador WHERE username=%s", (user_c,))
+            conn = get_db_connection()
+            cur = conn.cursor()
+            cur.execute(
+                "SELECT coins FROM users_apostador WHERE username = %s",
+                (user_c,)
+            )
             res = cur.fetchone()
-            if not res: st.error("Usuario no encontrado.")
+            if not res:
+                st.error("Usuario no encontrado.")
             else:
                 curr = res[0]
-                if act == "Quitar" and amt > curr:
-                    st.error(f"Saldo insuficiente ({curr}).");cur.close();conn.close(); st.stop()
-                new_bal = curr + (amt if act=="Agregar" else -amt)
-                cur.execute("UPDATE users_apostador SET coins=%s WHERE username=%s", (new_bal,user_c))
-                conn.commit(); st.success(f"Saldo actualizado: {new_bal} ÑataCoins.")
-            cur.close();conn.close()
-    # Administrar bets
+                if action == "Quitar" and amt > curr:
+                    st.error(f"Saldo insuficiente ({curr}).")
+                    cur.close()
+                    conn.close()
+                    st.stop()
+                new_balance = curr + (amt if action == "Agregar" else -amt)
+                cur.execute(
+                    "UPDATE users_apostador SET coins = %s WHERE username = %s",
+                    (new_balance, user_c)
+                )
+                conn.commit()
+                st.success(f"Saldo actualizado: {new_balance} ÑataCoins.")
+            cur.close()
+            conn.close()
+    # Administrar Bets
     with auth.expander("🎯 Administrar Bets", expanded=False):
-        game_sel = st.selectbox("Game", (1,2,3), key="game_sel_del")
+        game_sel = st.selectbox("Game", (1, 2, 3), key="game_sel_del")
         user_bet = st.text_input("Usuario para eliminar bets", key="bet_user_del")
-        if st.button("Eliminar apuestas"): 
+        if st.button("Eliminar apuestas"):
             delete_user_bets(game_sel, user_bet)
             st.success(f"Apuestas de {user_bet} para Game {game_sel} eliminadas y reembolsadas.")
 
@@ -302,9 +374,9 @@ st.markdown(f"""
     <h1>ÑATABET</h1>
   </div>
   <div style="display:flex;gap:12px;">
-    <a href="https://kick.com/yairlonelys"><img src="data:image/png;base64,{to_base64(SOCIAL_DIR/ 'kick.png')}"/></a>
-    <a href="https://x.com/YairLonelys"><img src="data:image/png;base64,{to_base64(SOCIAL_DIR/ 'x.png')}"/></a>
-    <a href="https://www.tiktok.com/@yairlonelyss"><img src="data:image/png;base64,{to_base64(SOCIAL_DIR/ 'tiktok.png')}"/></a>
+    <a href="https://kick.com/yairlonelys"><img src="data:image/png;base64,{to_base64(SOCIAL_DIR / 'kick.png')}"/></a>
+    <a href="https://x.com/YairLonelys"><img src="data:image/png;base64,{to_base64(SOCIAL_DIR / 'x.png')}"/></a>
+    <a href="https://www.tiktok.com/@yairlonelyss"><img src="data:image/png;base64,{to_base64(SOCIAL_DIR / 'tiktok.png')}"/></a>
   </div>
 </div>
 """, unsafe_allow_html=True)
@@ -312,35 +384,35 @@ st.markdown(f"""
 # -----------------------------------------
 # Pestañas de Juegos
 # -----------------------------------------
-tabs = st.tabs(["Game 1","Game 2","Game 3"])
+
+tabs = st.tabs(["Game 1", "Game 2", "Game 3"])
 for i, tab in enumerate(tabs, start=1):
     with tab:
         st.subheader(f"Apuestas - Game {i}")
         total_r, total_d, diff = get_summary(i)
-        # Admin ve tabla detallada
         if st.session_state.is_admin:
             rows = get_bets(i)
-            df = pd.DataFrame(rows, columns=["ID","Usuario","Monto","Equipo","Hora"])
+            df = pd.DataFrame(rows, columns=["ID", "Usuario", "Monto", "Equipo", "Hora"])
             st.table(df)
-            c1, c2 = st.columns(2)
-            if c1.button(f"GANO RADIANT {i}"):
-                settle_bets(i, 'Radiant'); st.success("Pagos realizados a Radiant.")
-            if c2.button(f"GANO DIRE {i}"):
-                settle_bets(i, 'Dire'); st.success("Pagos realizados a Dire.")
-        # Apostador puede apostar
+            col1, col2 = st.columns(2)
+            if col1.button(f"GANO RADIANT {i}"):
+                settle_bets(i, 'Radiant')
+                st.success("Pagos realizados a Radiant.")
+            if col2.button(f"GANO DIRE {i}"):
+                settle_bets(i, 'Dire')
+                st.success("Pagos realizados a Dire.")
         elif st.session_state.apostador:
             st.write(f"Total Radiant: {total_r} | Total Dire: {total_d} | Dif: {diff}")
             allow_r = total_r <= total_d
             allow_d = total_d <= total_r
             amt_i = st.number_input("Monto a apostar", min_value=1, key=f"amt{i}")
-            b1, b2 = st.columns(2)
-            if b1.button("APOSTAR RADIANT", key=f"r{i}", disabled=not allow_r):
+            btn_r, btn_d = st.columns(2)
+            if btn_r.button("APOSTAR RADIANT", key=f"r{i}", disabled=not allow_r):
                 ok, msg = place_bet(i, st.session_state.apostador_user, amt_i, 'Radiant')
                 st.success("Apuesta registrada.") if ok else st.error(msg)
-            if b2.button("APOSTAR DIRE", key=f"d{i}", disabled=not allow_d):
+            if btn_d.button("APOSTAR DIRE", key=f"d{i}", disabled=not allow_d):
                 ok, msg = place_bet(i, st.session_state.apostador_user, amt_i, 'Dire')
                 st.success("Apuesta registrada.") if ok else st.error(msg)
-        # Invitados
         else:
             st.write(f"Total Radiant: {total_r} | Total Dire: {total_d} | Dif: {diff}")
             st.info("Inicia sesión para apostar o ver más detalles.")
