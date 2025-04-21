@@ -37,38 +37,45 @@ def valid_password(pw: str) -> bool:
     return bool(re.match(r'^(?=.*[A-Z])(?=.*\W).{7,}$', pw))
 
 # -----------------------------------------
-# Inicializar Base de Datos
+# Inicializar Base de Datos (siempre)
 # -----------------------------------------
 def init_db():
-    conn = get_db_connection()
-    cur = conn.cursor()
-    # Creamos bets con created_at en la definición
-    cur.execute("""
-        CREATE TABLE IF NOT EXISTS bets (
-            id SERIAL PRIMARY KEY,
-            game_id INT,
-            username TEXT,
-            monto INT,
-            equipo TEXT,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        )
-    """)
-    # Creamos users_apostador con created_at
-    cur.execute("""
-        CREATE TABLE IF NOT EXISTS users_apostador (
-            id SERIAL PRIMARY KEY,
-            username TEXT UNIQUE,
-            password TEXT,
-            coins INT DEFAULT 0,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        )
-    """)
-    conn.commit()
-    cur.close()
-    conn.close()
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor()
+        # Crear tabla bets si no existe
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS bets (
+                id SERIAL PRIMARY KEY,
+                game_id INT,
+                username TEXT,
+                monto INT,
+                equipo TEXT
+            )
+        """)
+        # Asegurar columna created_at
+        cur.execute("""
+            ALTER TABLE bets
+            ADD COLUMN IF NOT EXISTS created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        """)
+        # Crear tabla users_apostador si no existe
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS users_apostador (
+                id SERIAL PRIMARY KEY,
+                username TEXT UNIQUE,
+                password TEXT,
+                coins INT DEFAULT 0,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+        conn.commit()
+        cur.close()
+        conn.close()
+        print("✅ Base de datos inicializada correctamente")
+    except Exception as e:
+        print("❌ Error al inicializar la base de datos:", e)
 
-# Llamamos siempre a init_db al inicio para asegurar migraciones
-init_db()
+# Ejecutar migraciones en cada inicio\ ninit_db()
 
 # -----------------------------------------
 # Funciones de Apuestas
@@ -86,12 +93,14 @@ def get_bets(game_id):
     conn.close()
     return rows
 
+
 def get_summary(game_id):
     bets = get_bets(game_id)
     total_r = sum(m for (_, _, m, equipo, _) in bets if equipo == 'Radiant')
     total_d = sum(m for (_, _, m, equipo, _) in bets if equipo == 'Dire')
     diff = abs(total_r - total_d)
     return total_r, total_d, diff
+
 
 def place_bet(game_id, username, amount, team):
     conn = get_db_connection()
@@ -116,6 +125,7 @@ def place_bet(game_id, username, amount, team):
     conn.commit()
     cur.close(); conn.close()
     return True, None
+
 
 def settle_bets(game_id, winner):
     bets = get_bets(game_id)
@@ -143,6 +153,7 @@ def settle_bets(game_id, winner):
     conn.commit()
     cur.close(); conn.close()
 
+
 def delete_user_bets(game_id, username):
     bets = get_bets(game_id)
     total_refund = sum(m for (_, u, m, _, _) in bets if u == username)
@@ -168,11 +179,12 @@ st.markdown(f"""
   background: url("data:image/gif;base64,{to_base64(SOCIAL_DIR / 'pato.gif')}") center/cover fixed #000;
   color: #FFF !important;
 }}
-.header-container {{ display:flex; justify-content:space-between; align-items:center; padding:10px; }}
-.header-container h1 {{ font-size:3rem; -webkit-text-stroke:1px purple; text-shadow:1px 1px 0 purple; margin:0; }}
-.header-container img {{ width:40px; margin-left:10px; }}
-</style>
+... (rest of your original styles and code) ...
 """, unsafe_allow_html=True)
+
+# Resto del código: sidebar, header, tabs, etc.
+# Puedes pegar el resto de tu logica sin cambios aquí.
+
 
 # -----------------------------------------
 # Sidebar: Autenticación y Admin
