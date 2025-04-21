@@ -48,7 +48,7 @@ def init_db():
             notas TEXT,
             updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )""")
-    # Crear tabla de apostadores (agregar columna coins si no existe)
+    # Crear tabla de apostadores y columna coins
     cur.execute("""
         CREATE TABLE IF NOT EXISTS users_apostador (
             id SERIAL PRIMARY KEY,
@@ -56,7 +56,6 @@ def init_db():
             password TEXT,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )""")
-    # Asegurar columna coins para ÑataCoins
     cur.execute("ALTER TABLE users_apostador ADD COLUMN IF NOT EXISTS coins INT DEFAULT 0")
     conn.commit(); cur.close(); conn.close()
 
@@ -157,10 +156,16 @@ with auth_sidebar.expander("Login / Registro", expanded=True):
                 st.error("Usuario o contraseña incorrectos.")
     cur.close(); conn.close()
 
-# Si apostador logueado, mostrar indicador y boton de logout, ocultar Admin
+# Si apostador logueado, mostrar indicador, saldo y botón de logout
 if st.session_state.apostador:
     auth_sidebar.markdown("---")
     auth_sidebar.markdown(f"**👤 Conectado como:** {st.session_state.apostador_user}")
+    # Obtener saldo actualizado
+    conn = get_db_connection(); cur = conn.cursor()
+    cur.execute("SELECT coins FROM users_apostador WHERE id=%s", (st.session_state.apostador,))
+    coins = cur.fetchone()[0]
+    cur.close(); conn.close()
+    auth_sidebar.markdown(f"**Saldo:** {coins} ÑataCoins")
     if auth_sidebar.button("Cerrar sesión Apostador"):
         st.session_state.apostador = None
         st.session_state.apostador_user = None
@@ -186,13 +191,13 @@ if st.session_state.is_admin and st.session_state.apostador is None:
                 )
                 conn.commit(); st.success("Contraseña actualizada exitosamente.")
             cur.close(); conn.close()
-    # Listado de apostadores
+    # Listado de apostadores con saldo
     auth_sidebar.markdown("---")
     with auth_sidebar.expander("📋 Listado de apostadores", expanded=False):
         conn = get_db_connection(); cur = conn.cursor()
-        cur.execute("SELECT username, created_at FROM users_apostador ORDER BY created_at DESC")
+        cur.execute("SELECT username, coins, created_at FROM users_apostador ORDER BY created_at DESC")
         rows = cur.fetchall(); cur.close(); conn.close()
-        df_users = pd.DataFrame(rows, columns=["Usuario","Creado en"])
+        df_users = pd.DataFrame(rows, columns=["Usuario","ÑataCoins","Creado en"])
         auth_sidebar.dataframe(df_users, use_container_width=True)
 
     # -----------------------------------------
@@ -248,4 +253,3 @@ for i, tab in enumerate(tabs, start=1):
         st.subheader(f"Apuestas - Game {i}")
         st.info("Aquí irá la tabla de apuestas para este juego.")
         # TODO: lógica de mostrar y edición de apuestas
-
