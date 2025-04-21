@@ -12,11 +12,16 @@ import re
 st.set_page_config(layout="wide")
 
 # Rutas base de recursos
-BASE_DIR  = Path(__file__).parent.parent
-IMAGES_DIR= BASE_DIR/"imagenes"
-SOCIAL_DIR= BASE_DIR/"social"
-YAPE_PATH = BASE_DIR/"yape"
-DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://postgres:...@...")
+BASE_DIR   = Path(__file__).parent.parent
+IMAGES_DIR = BASE_DIR / "imagenes"
+SOCIAL_DIR = BASE_DIR / "social"
+YAPE_PATH  = BASE_DIR / "yape"
+
+# URL de la base de datos en Railway
+DATABASE_URL = os.getenv(
+    "DATABASE_URL",
+    "postgresql://postgres:wKuijKwZqsUgOZJhiEqXraNgXugQnShg@caboose.proxy.rlwy.net:25343/railway?sslmode=require"
+)
 
 # -----------------------------------------
 # Utilitarios
@@ -57,14 +62,16 @@ def init_db():
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )""")
     cur.execute("ALTER TABLE users_apostador ADD COLUMN IF NOT EXISTS coins INT DEFAULT 0")
-    conn.commit(); cur.close(); conn.close()
+    conn.commit()
+    cur.close()
+    conn.close()
 
 init_db()
 
 # -----------------------------------------
 # CSS global: fondo y estilos de header
 # -----------------------------------------
-pato_b64 = to_base64(SOCIAL_DIR/"pato.gif")
+pato_b64 = to_base64(SOCIAL_DIR / "pato.gif")
 st.markdown(f"""
 <style>
 .stApp {{
@@ -110,7 +117,7 @@ if st.session_state.apostador is None:
             admin_u = st.text_input("Usuario Admin", key="admin_user")
             admin_p = st.text_input("Contraseña", type="password", key="admin_pwd")
             if st.button("Ingresar Admin"):
-                if admin_u=='yair' and admin_p=='yair123':
+                if admin_u == 'yair' and admin_p == 'yair123':
                     st.session_state.is_admin = True
                     st.success("Admin autenticado")
                 else:
@@ -125,11 +132,12 @@ auth_sidebar.markdown("---")
 # Sección Apostador
 auth_sidebar.markdown("### 🎲 Apostador")
 with auth_sidebar.expander("Login / Registro", expanded=True):
-    mode = st.radio("Selecciona acción", ("Login","Registrarse"), key="mode_user")
+    mode = st.radio("Selecciona acción", ("Login", "Registrarse"), key="mode_user")
     usr = st.text_input("Usuario", key="usr")
     pwd = st.text_input("Contraseña", type="password", key="pwd")
-    conn = get_db_connection(); cur = conn.cursor()
-    if mode=="Registrarse":
+    conn = get_db_connection()
+    cur = conn.cursor()
+    if mode == "Registrarse":
         if st.button("Crear cuenta"):
             if not valid_password(pwd):
                 st.error("La contraseña requiere 7+ caract., 1 mayúscula y 1 símbolo.")
@@ -137,15 +145,16 @@ with auth_sidebar.expander("Login / Registro", expanded=True):
                 try:
                     cur.execute(
                         "INSERT INTO users_apostador (username,password) VALUES (%s,%s)",
-                        (usr,pwd)
+                        (usr, pwd)
                     )
-                    conn.commit(); st.success("Cuenta creada. Ahora ingresa.")
+                    conn.commit()
+                    st.success("Cuenta creada. Ahora ingresa.")
                 except psycopg2.IntegrityError:
                     st.error("El usuario ya existe.")
     else:
         if st.button("Ingresar"):
             cur.execute(
-                "SELECT id FROM users_apostador WHERE username=%s AND password=%s",(usr,pwd)
+                "SELECT id FROM users_apostador WHERE username=%s AND password=%s", (usr, pwd)
             )
             rec = cur.fetchone()
             if rec:
@@ -154,17 +163,20 @@ with auth_sidebar.expander("Login / Registro", expanded=True):
                 st.success(f"Bienvenido, {usr}")
             else:
                 st.error("Usuario o contraseña incorrectos.")
-    cur.close(); conn.close()
+    cur.close()
+    conn.close()
 
 # Si apostador logueado, mostrar indicador, saldo y botón de logout
 if st.session_state.apostador:
     auth_sidebar.markdown("---")
     auth_sidebar.markdown(f"**👤 Conectado como:** {st.session_state.apostador_user}")
     # Obtener saldo actualizado
-    conn = get_db_connection(); cur = conn.cursor()
+    conn = get_db_connection()
+    cur = conn.cursor()
     cur.execute("SELECT coins FROM users_apostador WHERE id=%s", (st.session_state.apostador,))
     coins = cur.fetchone()[0]
-    cur.close(); conn.close()
+    cur.close()
+    conn.close()
     auth_sidebar.markdown(f"**Saldo:** {coins} ÑataCoins")
     if auth_sidebar.button("Cerrar sesión Apostador"):
         st.session_state.apostador = None
@@ -178,7 +190,8 @@ if st.session_state.is_admin and st.session_state.apostador is None:
         user_cp = st.text_input("Usuario a modificar", key="cp_user")
         new_pw  = st.text_input("Nueva contraseña", type="password", key="cp_pwd")
         if st.button("Actualizar contraseña"):
-            conn = get_db_connection(); cur = conn.cursor()
+            conn = get_db_connection()
+            cur = conn.cursor()
             cur.execute("SELECT id FROM users_apostador WHERE username=%s", (user_cp,))
             rec = cur.fetchone()
             if not rec:
@@ -189,46 +202,64 @@ if st.session_state.is_admin and st.session_state.apostador is None:
                 cur.execute(
                     "UPDATE users_apostador SET password=%s WHERE username=%s", (new_pw, user_cp)
                 )
-                conn.commit(); st.success("Contraseña actualizada exitosamente.")
-            cur.close(); conn.close()
-    # Listado de apostadores con saldo
+                conn.commit()
+                st.success("Contraseña actualizada exitosamente.")
+            cur.close()
+            conn.close()
+
     auth_sidebar.markdown("---")
     with auth_sidebar.expander("📋 Listado de apostadores", expanded=False):
-        conn = get_db_connection(); cur = conn.cursor()
+        conn = get_db_connection()
+        cur = conn.cursor()
         cur.execute("SELECT username, coins, created_at FROM users_apostador ORDER BY created_at DESC")
-        rows = cur.fetchall(); cur.close(); conn.close()
-        df_users = pd.DataFrame(rows, columns=["Usuario","ÑataCoins","Creado en"])
+        rows = cur.fetchall()
+        cur.close()
+        conn.close()
+        df_users = pd.DataFrame(rows, columns=["Usuario", "ÑataCoins", "Creado en"])
         auth_sidebar.dataframe(df_users, use_container_width=True)
 
     # -----------------------------------------
-    # AGREGAR ÑATA COINS
+    # ADMINISTRAR ÑATA COINS (Agregar / Quitar)
     # -----------------------------------------
     auth_sidebar.markdown("---")
-    with auth_sidebar.expander("💰 AGREGAR ÑATA COINS", expanded=False):
+    with auth_sidebar.expander("💰 Administrar ÑataCoins", expanded=False):
+        action    = st.selectbox("Acción", ("Agregar", "Quitar"), key="coin_action")
         user_coin = st.text_input("Usuario", key="coin_user")
         coin_amt  = st.number_input("ÑataCoins", min_value=0, step=1, key="coin_amt")
-        if st.button("Agregar Coins"):
-            conn = get_db_connection(); cur = conn.cursor()
+        if st.button("Ejecutar", key="coin_exec"):
+            conn = get_db_connection()
+            cur  = conn.cursor()
             cur.execute("SELECT coins FROM users_apostador WHERE username=%s", (user_coin,))
             rc = cur.fetchone()
             if not rc:
                 st.error("Usuario no encontrado.")
             else:
-                new_total = rc[0] + coin_amt
+                current = rc[0]
+                if action == "Agregar":
+                    new_total = current + coin_amt
+                else:  # Quitar
+                    if coin_amt > current:
+                        st.error(f"No puedes quitar {coin_amt} ÑataCoins: saldo actual {current}.")
+                        cur.close()
+                        conn.close()
+                        st.stop()
+                    new_total = current - coin_amt
                 cur.execute(
                     "UPDATE users_apostador SET coins=%s WHERE username=%s",
                     (new_total, user_coin)
                 )
-                conn.commit(); st.success(f"Saldo actualizado: {new_total} ÑataCoins para {user_coin}")
-            cur.close(); conn.close()
+                conn.commit()
+                st.success(f"Saldo actualizado: {new_total} ÑataCoins para {user_coin}")
+            cur.close()
+            conn.close()
 
 # -----------------------------------------
 # Header: Logo, título y redes sociales
 # -----------------------------------------
-logo_b64   = to_base64(SOCIAL_DIR/"titulo.png")
-kick_b64   = to_base64(SOCIAL_DIR/"kick.png")
-x_b64      = to_base64(SOCIAL_DIR/"x.png")
-tiktok_b64 = to_base64(SOCIAL_DIR/"tiktok.png")
+logo_b64   = to_base64(SOCIAL_DIR / "titulo.png")
+kick_b64   = to_base64(SOCIAL_DIR / "kick.png")
+x_b64      = to_base64(SOCIAL_DIR / "x.png")
+tiktok_b64 = to_base64(SOCIAL_DIR / "tiktok.png")
 
 st.markdown(f"""
 <div class="header-container">
@@ -247,10 +278,9 @@ st.markdown(f"""
 # -----------------------------------------
 # Separar en pestañas: Game 1, 2 y 3
 # -----------------------------------------
-tabs = st.tabs(["Game 1","Game 2","Game 3"])
+tabs = st.tabs(["Game 1", "Game 2", "Game 3"])
 for i, tab in enumerate(tabs, start=1):
     with tab:
         st.subheader(f"Apuestas - Game {i}")
         st.info("Aquí irá la tabla de apuestas para este juego.")
         # TODO: lógica de mostrar y edición de apuestas
-
