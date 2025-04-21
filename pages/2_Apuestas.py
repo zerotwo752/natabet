@@ -38,6 +38,7 @@ def valid_password(pw: str) -> bool:
 def init_db():
     conn = get_db_connection()
     cur = conn.cursor()
+    # Crear tabla de apuestas
     cur.execute("""
         CREATE TABLE IF NOT EXISTS bets (
             id SERIAL PRIMARY KEY,
@@ -47,18 +48,18 @@ def init_db():
             equipo TEXT,
             notas TEXT,
             updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        )"""
-    )
+        )""")
+    # Crear tabla de apostadores
     cur.execute("""
         CREATE TABLE IF NOT EXISTS users_apostador (
             id SERIAL PRIMARY KEY,
             username TEXT UNIQUE,
             password TEXT,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        )"""
-    )
+        )""")
     conn.commit(); cur.close(); conn.close()
 
+# Ejecutar inicialización
 init_db()
 
 # -----------------------------------------
@@ -72,10 +73,19 @@ st.markdown(f"""
   color: #FFF !important;
 }}
 .header-container {{
-  display: flex; align-items: center; justify-content: space-between;
-  background: #FFF; border: 2px solid purple; padding: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: transparent;
+  padding: 10px;
 }}
-.header-container h1 {{ color: #FFD700 !important; margin: 0; }}
+.header-container h1 {{
+  color: #FFF;
+  margin: 0;
+  font-size: 2rem;
+  -webkit-text-stroke: 1px purple;
+  text-shadow: -1px -1px 0 purple, 1px -1px 0 purple, -1px 1px 0 purple, 1px 1px 0 purple;
+}}
 </style>
 """, unsafe_allow_html=True)
 
@@ -141,13 +151,13 @@ tiktok_b64 = to_base64(SOCIAL_DIR/"tiktok.png")
 st.markdown(f"""
 <div class="header-container">
   <div style="display:flex;align-items:center;gap:12px;">
-    <img src="data:image/png;base64,{logo_b64}" style="width:50px;"/>
+    <img src="data:image/png;base64,{logo_b64}" style="width:50px; background: transparent;"/>
     <h1>ÑATABET</h1>
   </div>
   <div style="display:flex;gap:12px;">
-    <a href="https://kick.com/yairlonelys"><img src="data:image/png;base64,{kick_b64}" style="width:30px;"/></a>
-    <a href="https://x.com/YairLonelys"><img src="data:image/png;base64,{x_b64}" style="width:30px;"/></a>
-    <a href="https://www.tiktok.com/@yairlonelyss"><img src="data:image/png;base64,{tiktok_b64}" style="width:30px;"/></a>
+    <a href="https://kick.com/yairlonelys"><img src="data:image/png;base64,{kick_b64}" style="width:30px; background: transparent;"/></a>
+    <a href="https://x.com/YairLonelys"><img src="data:image/png;base64,{x_b64}" style="width:30px; background: transparent;"/></a>
+    <a href="https://www.tiktok.com/@yairlonelyss"><img src="data:image/png;base64,{tiktok_b64}" style="width:30px; background: transparent;"/></a>
   </div>
 </div>
 """, unsafe_allow_html=True)
