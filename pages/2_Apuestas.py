@@ -7,18 +7,19 @@ import os
 import re
 
 # -----------------------------------------
-# Configuración básica
+# Configuración de la página
 # -----------------------------------------
 st.set_page_config(layout="wide")
 
+# Definir rutas base de recursos
+BASE_DIR  = Path(__file__).parent.parent
+IMAGES_DIR= BASE_DIR/"imagenes"
+SOCIAL_DIR= BASE_DIR/"social"
+YAPE_PATH = BASE_DIR/"yape"
 DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://postgres:...@...")
-BASE_DIR = Path(__file__).parent
-IMAGES_DIR = BASE_DIR / "imagenes"
-SOCIAL_DIR = BASE_DIR / "social"
-YAPE_PATH = BASE_DIR / "yape"
 
 # -----------------------------------------
-# Funciones utilitarias
+# Utilitarios
 # -----------------------------------------
 def to_base64(img_path: Path) -> str:
     return base64.b64encode(img_path.read_bytes()).decode() if img_path.exists() else ""
@@ -26,12 +27,17 @@ def to_base64(img_path: Path) -> str:
 def get_db_connection():
     return psycopg2.connect(DATABASE_URL, sslmode="require")
 
-# Inicializar tablas: bets, admins, apostadores
+# Verificar formato de contraseña
+def valid_password(pw: str) -> bool:
+    return bool(re.match(r'^(?=.*[A-Z])(?=.*\W).{7,}$', pw))
+
+# -----------------------------------------
+# Inicializar Base de Datos
+# -----------------------------------------
 @st.cache_resource
 def init_db():
     conn = get_db_connection()
     cur = conn.cursor()
-    # tabla de apuestas
     cur.execute("""
         CREATE TABLE IF NOT EXISTS bets (
             id SERIAL PRIMARY KEY,
@@ -41,27 +47,37 @@ def init_db():
             equipo TEXT,
             notas TEXT,
             updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        )""")
-    # tabla de apostadores
+        )"""
+    )
     cur.execute("""
         CREATE TABLE IF NOT EXISTS users_apostador (
             id SERIAL PRIMARY KEY,
             username TEXT UNIQUE,
             password TEXT,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        )""")
-    conn.commit()
-    cur.close(); conn.close()
+        )"""
+    )
+    conn.commit(); cur.close(); conn.close()
 
-# Verificar contraseña
-def valid_password(pw: str) -> bool:
-    # mínimo 7 caracteres, 1 mayúscula, 1 símbolo
-    return bool(re.match(r'^(?=.*[A-Z])(?=.*\W).{7,}$', pw))
-
-# -----------------------------------------
-# Inicializar DB
-# -----------------------------------------
 init_db()
+
+# -----------------------------------------
+# CSS global: fondo y estilos de header
+# -----------------------------------------
+pato_b64 = to_base64(SOCIAL_DIR/"pato.gif")
+st.markdown(f"""
+<style>
+.stApp {{
+  background: url(\"data:image/gif;base64,{pato_b64}\") center 70% / cover fixed #1a1a1a;
+  color: #FFF !important;
+}}
+.header-container {{
+  display: flex; align-items: center; justify-content: space-between;
+  background: #FFF; border: 2px solid purple; padding: 10px;
+}}
+.header-container h1 {{ color: #FFD700 !important; margin: 0; }}
+</style>
+""", unsafe_allow_html=True)
 
 # -----------------------------------------
 # Sidebar: Admin + Apostador
@@ -69,75 +85,64 @@ init_db()
 st.sidebar.markdown("### 👑 Admin")
 if 'is_admin' not in st.session_state:
     st.session_state.is_admin = False
-
 with st.sidebar.expander("Admin Login", expanded=True):
     if not st.session_state.is_admin:
         user = st.text_input("Usuario Admin", key="admin_user")
-        pwd = st.text_input("Contraseña", type="password", key="admin_pwd")
+        pwd  = st.text_input("Contraseña", type="password", key="admin_pwd")
         if st.button("Ingresar Admin"):
-            # credenciales estáticas o DB
-            if user == 'yair' and pwd == 'yair123':
-                st.session_state.is_admin = True
-                st.success("Admin autenticado")
-            else:
-                st.error("Credenciales incorrectas")
+            if user=='yair' and pwd=='yair123':
+                st.session_state.is_admin = True; st.success("Admin autenticado")
+            else: st.error("Credenciales incorrectas")
     else:
         st.write("Admin conectado")
-        if st.button("Cerrar sesión Admin"):
-            st.session_state.is_admin = False
+        if st.button("Cerrar sesión Admin"): st.session_state.is_admin=False
 
 st.sidebar.markdown("---")
 st.sidebar.markdown("### 🎲 Apostador")
 if 'apostador' not in st.session_state:
     st.session_state.apostador = None
-
 with st.sidebar.expander("Login / Registro", expanded=True):
-    mode = st.radio("Selecciona acción", ("Login", "Registrarse"), key="mode_user")
+    mode = st.radio("Selecciona acción", ("Login","Registrarse"), key="mode_user")
     username = st.text_input("Usuario", key="usr")
     password = st.text_input("Contraseña", type="password", key="pwd")
-    conn = get_db_connection()
-    cur = conn.cursor()
-    if mode == "Registrarse":
+    conn = get_db_connection(); cur = conn.cursor()
+    if mode=="Registrarse":
         if st.button("Crear cuenta"):
             if not valid_password(password):
-                st.error("La contraseña requiere mínimo 7 caracteres, 1 mayúscula y 1 símbolo.")
+                st.error("La contraseña requiere 7+ caract., 1 mayúscula y 1 símbolo.")
             else:
                 try:
                     cur.execute(
-                        "INSERT INTO users_apostador (username, password) VALUES (%s, %s)",
-                        (username, password)
+                        "INSERT INTO users_apostador (username,password) VALUES (%s,%s)",
+                        (username,password)
                     )
-                    conn.commit()
-                    st.success("Cuenta creada. Ahora ingresa.")
-                except Exception:
+                    conn.commit(); st.success("Cuenta creada. Ahora ingresa.")
+                except psycopg2.IntegrityError:
                     st.error("El usuario ya existe.")
-    else:  # Login
+    else:
         if st.button("Ingresar"):
             cur.execute(
-                "SELECT id FROM users_apostador WHERE username=%s AND password=%s",
-                (username, password)
+                "SELECT id FROM users_apostador WHERE username=%s AND password=%s",(username,password)
             )
-            user_rec = cur.fetchone()
-            if user_rec:
-                st.session_state.apostador = user_rec[0]
-                st.success(f"Bienvenido, {username}")
-            else:
-                st.error("Usuario o contraseña incorrectos.")
+            rec = cur.fetchone()
+            if rec:
+                st.session_state.apostador = rec[0]; st.success(f"Bienvenido, {username}")
+            else: st.error("Usuario o contraseña incorrectos.")
     cur.close(); conn.close()
 
 # -----------------------------------------
-# Header: Logo, título y redes
+# Header: Logo, título y redes sociales
 # -----------------------------------------
-logo_b64 = to_base64(SOCIAL_DIR / "titulo.png")
-kick_b64 = to_base64(SOCIAL_DIR / "kick.png")
-x_b64    = to_base64(SOCIAL_DIR / "x.png")
-tiktok_b64 = to_base64(SOCIAL_DIR / "tiktok.png")
+logo_b64   = to_base64(SOCIAL_DIR/"titulo.png")
+kick_b64   = to_base64(SOCIAL_DIR/"kick.png")
+x_b64      = to_base64(SOCIAL_DIR/"x.png")
+tiktok_b64 = to_base64(SOCIAL_DIR/"tiktok.png")
 
 st.markdown(f"""
-<div style="display:flex;align-items:center;justify-content:space-between;background:#1a1a1a;padding:10px;">
+<div class="header-container">
   <div style="display:flex;align-items:center;gap:12px;">
     <img src="data:image/png;base64,{logo_b64}" style="width:50px;"/>
-    <h1 style="color:#FFD700;">ÑATABET</h1>
+    <h1>ÑATABET</h1>
   </div>
   <div style="display:flex;gap:12px;">
     <a href="https://kick.com/yairlonelys"><img src="data:image/png;base64,{kick_b64}" style="width:30px;"/></a>
@@ -148,11 +153,11 @@ st.markdown(f"""
 """, unsafe_allow_html=True)
 
 # -----------------------------------------
-# Dividir en tabs por juego
+# Separar en pestañas: Game 1, 2 y 3
 # -----------------------------------------
-tabs = st.tabs(["Game 1", "Game 2", "Game 3"])
+tabs = st.tabs(["Game 1","Game 2","Game 3"])
 for i, tab in enumerate(tabs, start=1):
     with tab:
         st.subheader(f"Apuestas - Game {i}")
         st.info("Aquí irá la tabla de apuestas para este juego.")
-        # TODO: Mostrar y editar apuestas según rol (admin/apostador/public)
+        # TODO: lógica de mostr y edición de apuestas
