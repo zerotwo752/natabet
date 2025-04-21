@@ -88,9 +88,9 @@ st.markdown(f"""
 """, unsafe_allow_html=True)
 
 # -----------------------------------------
-# Sidebar: Admin (oculto si apostador logeado)
+# Sidebar: Auth (Admin & Apostador)
 # -----------------------------------------
-# Inicializar flags en sesión
+# Inicializar sesión
 if 'is_admin' not in st.session_state:
     st.session_state.is_admin = False
 if 'apostador' not in st.session_state:
@@ -98,26 +98,29 @@ if 'apostador' not in st.session_state:
 if 'apostador_user' not in st.session_state:
     st.session_state.apostador_user = None
 
-# Mostrar Admin solo si NO hay apostador logeado
 auth_sidebar = st.sidebar
+
+# Sección Admin (solo si no hay apostador logueado)
 if st.session_state.apostador is None:
     auth_sidebar.markdown("### 👑 Admin")
     with auth_sidebar.expander("Admin Login", expanded=True):
         if not st.session_state.is_admin:
-            user = st.text_input("Usuario Admin", key="admin_user")
-            pwd  = st.text_input("Contraseña", type="password", key="admin_pwd")
+            admin_u = st.text_input("Usuario Admin", key="admin_user")
+            admin_p = st.text_input("Contraseña", type="password", key="admin_pwd")
             if st.button("Ingresar Admin"):
-                if user=='yair' and pwd=='yair123':
-                    st.session_state.is_admin = True; st.success("Admin autenticado")
-                else: st.error("Credenciales incorrectas")
+                if admin_u=='yair' and admin_p=='yair123':
+                    st.session_state.is_admin = True
+                    st.success("Admin autenticado")
+                else:
+                    st.error("Credenciales incorrectas")
         else:
             auth_sidebar.write("Admin conectado")
-            if st.button("Cerrar sesión Admin"): st.session_state.is_admin=False
+            if st.button("Cerrar sesión Admin"):
+                st.session_state.is_admin = False
 
-# -----------------------------------------
-# Sidebar: Apostador (registro/login)
-# -----------------------------------------
+# Separador
 auth_sidebar.markdown("---")
+# Sección Apostador
 auth_sidebar.markdown("### 🎲 Apostador")
 with auth_sidebar.expander("Login / Registro", expanded=True):
     mode = st.radio("Selecciona acción", ("Login","Registrarse"), key="mode_user")
@@ -134,7 +137,8 @@ with auth_sidebar.expander("Login / Registro", expanded=True):
                         "INSERT INTO users_apostador (username,password) VALUES (%s,%s)",
                         (usr,pwd)
                     )
-                    conn.commit(); st.success("Cuenta creada. Ahora ingresa.")
+                    conn.commit()
+                    st.success("Cuenta creada. Ahora ingresa.")
                 except psycopg2.IntegrityError:
                     st.error("El usuario ya existe.")
     else:
@@ -147,17 +151,20 @@ with auth_sidebar.expander("Login / Registro", expanded=True):
                 st.session_state.apostador = rec[0]
                 st.session_state.apostador_user = usr
                 st.success(f"Bienvenido, {usr}")
-            else: st.error("Usuario o contraseña incorrectos.")
+            else:
+                st.error("Usuario o contraseña incorrectos.")
     cur.close(); conn.close()
 
-# Si apostador logeado, mostrar indicador y ocultar admin
+# Si apostador logueado, mostrar indicador y boton de logout, ocultar Admin
 if st.session_state.apostador:
     auth_sidebar.markdown("---")
     auth_sidebar.markdown(f"**👤 Conectado como:** {st.session_state.apostador_user}")
+    if auth_sidebar.button("Cerrar sesión Apostador"):
+        st.session_state.apostador = None
+        st.session_state.apostador_user = None
+        st.success("Sesión de apostador cerrada.")
 
-# -----------------------------------------
-# Cambio de contraseña (solo admin)
-# -----------------------------------------
+# Sección Cambio de contraseña (solo Admin y sin apostador)
 if st.session_state.is_admin and st.session_state.apostador is None:
     auth_sidebar.markdown("---")
     with auth_sidebar.expander("🔑 Cambio de contraseña", expanded=False):
