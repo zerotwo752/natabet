@@ -13,8 +13,7 @@ from datetime import datetime
 st.set_page_config(page_title="ÑATABET - Apuestas", layout="wide")
 
 # Rutas base de recursos
-de_file = Path(__file__).resolve().parent
-BASE_DIR = de_file
+BASE_DIR = Path(__file__).resolve().parent
 IMAGES_DIR = BASE_DIR / "imagenes"
 SOCIAL_DIR = BASE_DIR / "social"
 YAPE_PATH = BASE_DIR / "yape"
@@ -38,7 +37,7 @@ def valid_password(pw: str) -> bool:
     return bool(re.match(r'^(?=.*[A-Z])(?=.*\W).{7,}$', pw))
 
 # -----------------------------------------
-# Inicializar Base de Datos
+# DB init
 # -----------------------------------------
 def init_db():
     conn = get_db_connection(); cur = conn.cursor()
@@ -50,8 +49,7 @@ def init_db():
             monto INT,
             equipo TEXT,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        )
-    """)
+        )""")
     cur.execute("""
         CREATE TABLE IF NOT EXISTS users_apostador (
             id SERIAL PRIMARY KEY,
@@ -59,14 +57,13 @@ def init_db():
             password TEXT,
             coins INT DEFAULT 0,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        )
-    """)
+        )""")
     conn.commit(); cur.close(); conn.close()
 
 init_db()
 
 # -----------------------------------------
-# Funciones de Apuestas
+# Funciones de apuestas
 # -----------------------------------------
 def get_bets(game_id):
     conn = get_db_connection(); cur = conn.cursor()
@@ -80,27 +77,24 @@ def get_bets(game_id):
 
 def get_summary(game_id):
     bets = get_bets(game_id)
-    total_r = sum(m for (_, _, m, eq, _) in bets if eq == "Radiant")
-    total_d = sum(m for (_, _, m, eq, _) in bets if eq == "Dire")
+    total_r = sum(m for (_, _, m, eq, _) in bets if eq == 'Radiant')
+    total_d = sum(m for (_, _, m, eq, _) in bets if eq == 'Dire')
     return total_r, total_d, abs(total_r - total_d)
 
 
 def place_bet(game_id, username, amount, team):
     conn = get_db_connection(); cur = conn.cursor()
-    cur.execute("SELECT coins FROM users_apostador WHERE username = %s", (username,))
-    result = cur.fetchone()
-    if not result:
-        cur.close(); conn.close(); return False, "Usuario no existe"
-    coins = result[0]
+    cur.execute("SELECT coins FROM users_apostador WHERE username=%s", (username,))
+    res = cur.fetchone()
+    if not res:
+        cur.close(); conn.close(); return False, 'Usuario no existe'
+    coins = res[0]
     if amount > coins:
-        cur.close(); conn.close(); return False, "Saldo insuficiente"
+        cur.close(); conn.close(); return False, 'Saldo insuficiente'
+    cur.execute("UPDATE users_apostador SET coins=coins-%s WHERE username=%s", (amount, username))
     cur.execute(
-        "UPDATE users_apostador SET coins = coins - %s WHERE username = %s",
-        (amount, username)
-    )
-    cur.execute(
-        "INSERT INTO bets (game_id, username, monto, equipo) VALUES (%s, %s, %s, %s)",
-        (game_id, username, amount, team)
+        "INSERT INTO bets (game_id,username,monto,equipo) VALUES (%s,%s,%s,%s)",
+        (game_id,username,amount,team)
     )
     conn.commit(); cur.close(); conn.close()
     return True, None
@@ -109,172 +103,140 @@ def place_bet(game_id, username, amount, team):
 def settle_bets(game_id, winner):
     bets = get_bets(game_id)
     pool = sum(m for (_, _, m, eq, _) in bets if eq != winner)
-    remaining = pool
+    rem = pool
     conn = get_db_connection(); cur = conn.cursor()
     for _, user, amount, eq, _ in bets:
         if eq == winner:
-            credit = int(amount * 1.8) if remaining >= amount else int(remaining * 1.8) + (amount - remaining)
-            remaining = max(0, remaining - amount)
-            cur.execute(
-                "UPDATE users_apostador SET coins = coins + %s WHERE username = %s",
-                (credit, user)
-            )
-    cur.execute("DELETE FROM bets WHERE game_id = %s", (game_id,))
+            credit = int(amount*1.8) if rem>=amount else int(rem*1.8)+(amount-rem)
+            rem = max(0, rem-amount)
+            cur.execute("UPDATE users_apostador SET coins=coins+%s WHERE username=%s", (credit,user))
+    cur.execute("DELETE FROM bets WHERE game_id=%s", (game_id,))
     conn.commit(); cur.close(); conn.close()
 
 # -----------------------------------------
-# Estilos y Header HTML
+# CSS global + Header + WhatsApp
 # -----------------------------------------
-pato_b64 = to_base64(SOCIAL_DIR / "pato.gif")
-titulo_b64 = to_base64(SOCIAL_DIR / "titulo.png")
-kick_b64 = to_base64(SOCIAL_DIR / "kick.png")
-x_b64 = to_base64(SOCIAL_DIR / "x.png")
-tiktok_b64 = to_base64(SOCIAL_DIR / "tiktok.png")
+pato_b64 = to_base64(SOCIAL_DIR/'pato.gif')
+titulo_b64 = to_base64(SOCIAL_DIR/'titulo.png')
+kick_b64 = to_base64(SOCIAL_DIR/'kick.png')
+x_b64 = to_base64(SOCIAL_DIR/'x.png')
+tiktok_b64 = to_base64(SOCIAL_DIR/'tiktok.png')
+whatsapp_b64 = to_base64(SOCIAL_DIR/'whatsapp.png')
 
-# CSS
 st.markdown(f"""
 <style>
 .stApp {{
-    background: url('data:image/gif;base64,{pato_b64}') center 70% / cover fixed #1a1a1a;
-    color: #FFF !important;
+  background: url(data:image/gif;base64,{pato_b64}) center 70% / cover fixed #1a1a1a;
+  color: #FFF !important;
 }}
-.header-container {{
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 10px 20px;
-}}
-.logo {{ width: 70px; height: auto; background: transparent; }}
+.header-container {{ display:flex; align-items:center; justify-content:space-between; padding:10px 20px; }}
+.logo {{ width:70px; }}
 .header-container h1 {{
-    color: #FFF;
-    margin: 0;
-    font-size: 2.5rem;
-    -webkit-text-stroke: 1px purple;
-    text-shadow: -1px -1px 0 purple, 1px -1px 0 purple, -1px 1px 0 purple, 1px 1px 0 purple;
+  color:#FFF; margin:0; font-size:2.5rem;
+  -webkit-text-stroke:1px purple;
+  text-shadow:-1px -1px 0 purple,1px -1px 0 purple,-1px 1px 0 purple,1px 1px 0 purple;
 }}
-.social-icon {{ width: 40px; margin-left: 12px; background: transparent; transition: transform .2s; }}
-.social-icon:hover {{ transform: scale(1.1); }}
+.social-icon {{ width:40px; margin-left:12px; cursor:pointer; transition:.2s; }}
+.social-icon:hover {{ transform:scale(1.1); }}
 </style>
-""", unsafe_allow_html=True)
 
-# Header HTML
-st.markdown(f"""
 <div class="header-container">
   <div style="display:flex;align-items:center;gap:12px;">
     <img src="data:image/png;base64,{titulo_b64}" class="logo" />
     <h1>ÑATABET</h1>
   </div>
   <div style="display:flex;align-items:center;gap:12px;">
-    <a href="https://kick.com/yairlonelys" target="_blank">
-      <img src="data:image/png;base64,{kick_b64}" class="social-icon" />
-    </a>
-    <a href="https://x.com/YairLonelys" target="_blank">
-      <img src="data:image/png;base64,{x_b64}" class="social-icon" />
-    </a>
-    <a href="https://www.tiktok.com/@yairlonelyss" target="_blank">
-      <img src="data:image/png;base64,{tiktok_b64}" class="social-icon" />
-    </a>
+    <a href="https://kick.com/yairlonelys" target="_blank"><img src="data:image/png;base64,{kick_b64}" class="social-icon"/></a>
+    <a href="https://x.com/YairLonelys" target="_blank"><img src="data:image/png;base64,{x_b64}" class="social-icon"/></a>
+    <a href="https://www.tiktok.com/@yairlonelyss" target="_blank"><img src="data:image/png;base64,{tiktok_b64}" class="social-icon"/></a>
   </div>
 </div>
-""", unsafe_allow_html=True)
-
-# -----------------------------------------
-# Sidebar: Autenticación
-# -----------------------------------------
-if 'is_admin' not in st.session_state: st.session_state.is_admin = False
-if 'apostador' not in st.session_state: st.session_state.apostador = None
-if 'apostador_user' not in st.session_state: st.session_state.apostador_user = None
-
-auth = st.sidebar
-# Admin login (oculto si hay apostador)
-if st.session_state.apostador is None:
-    with auth.expander("👑 Admin", expanded=True):
-        if not st.session_state.is_admin:
-            u = st.text_input("Usuario Admin", key="admin_u")
-            p = st.text_input("Contraseña Admin", type="password", key="admin_p")
-            if st.button("Ingresar Admin"):
-                if u=='yair' and p=='yair123': st.session_state.is_admin = True; st.success("Admin autenticado")
-                else: st.error("Credenciales incorrectas")
-        else:
-            st.write("Admin conectado")
-            if st.button("Cerrar sesión Admin"): st.session_state.is_admin = False; st.success("Sesión cerrada")
-
-auth.markdown("---")
-# Apostador login/registro
-with auth.expander("🎲 Apostador", expanded=True):
-    mode = st.radio("Acción", ("Login","Registrar"), key="mode_user")
-    usr = st.text_input("Usuario", key="usr")
-    pwd = st.text_input("Contraseña", type="password", key="pwd")
-    conn = get_db_connection(); cur = conn.cursor()
-    if mode == "Registrar" and st.button("Crear cuenta"):
-        if not valid_password(pwd): st.error("La contraseña requiere 7+ caract., 1 mayúscula y 1 símbolo.")
-        else:
-            try: cur.execute("INSERT INTO users_apostador (username,password) VALUES (%s,%s)", (usr,pwd)); conn.commit(); st.success("Cuenta creada.")
-            except psycopg2.IntegrityError: st.error("El usuario ya existe.")
-    if mode == "Login" and st.button("Ingresar"):
-        cur.execute("SELECT id FROM users_apostador WHERE username=%s AND password=%s", (usr,pwd))
-        rec = cur.fetchone()
-        if rec: st.session_state.apostador = rec[0]; st.session_state.apostador_user = usr; st.success(f"Bienvenido, {usr}")
-        else: st.error("Usuario o contraseña incorrectos.")
-    cur.close(); conn.close()
-
-auth.markdown("---")
-# Indicador/Logout para apostador
-if st.session_state.apostador:
-    auth.write(f"👤 {st.session_state.apostador_user}")
-    conn = get_db_connection(); cur = conn.cursor()
-    cur.execute("SELECT coins FROM users_apostador WHERE id=%s", (st.session_state.apostador,))
-    balance = cur.fetchone()[0]; cur.close(); conn.close()
-    auth.write(f"💰 {balance:,} ÑataCoins")
-    if auth.button("Cerrar sesión Apostador"): st.session_state.apostador=None; st.session_state.apostador_user=None; st.success("Sesión cerrada")
-
-# -----------------------------------------
-# Pestañas de juegos y lógica de apuestas
-# -----------------------------------------
-tabs = st.tabs(["Game 1","Game 2","Game 3"])
-for i, tab in enumerate(tabs, start=1):
-    with tab:
-        st.subheader(f"Apuestas - Game {i}")
-        total_r, total_d, diff = get_summary(i)
-        if st.session_state.is_admin:
-            df = pd.DataFrame(get_bets(i), columns=["ID","Usuario","Monto","Equipo","Hora"])
-            st.table(df)
-            c1, c2 = st.columns(2)
-            if c1.button(f"GANO RADIANT_{i}", key=f"win_r{i}"): settle_bets(i,'Radiant'); st.success("Pagos Radiant.")
-            if c2.button(f"GANO DIRE_{i}", key=f"win_d{i}"): settle_bets(i,'Dire'); st.success("Pagos Dire.")
-        elif st.session_state.apostador:
-            st.write(f"Total Radiant: {total_r} | Total Dire: {total_d} | Dif: {diff}")
-            amt = st.number_input("Monto a apostar", min_value=1, step=1, key=f"amt_{i}")
-            rcol, dcol = st.columns(2)
-            with rcol:
-                if st.button("APOSTAR RADIANT", key=f"bet_r{i}"):
-                    try:
-                        if amt<=0: st.warning("Monto inválido.")
-                        else:
-                            ok,msg = place_bet(i,st.session_state.apostador_user,amt,'Radiant')
-                            st.success("Registrada.") if ok else st.error(msg)
-                    except Exception as e: st.error("Error"); st.exception(e)
-            with dcol:
-                if st.button("APOSTAR DIRE", key=f"bet_d{i}"):
-                    try:
-                        if amt<=0: st.warning("Monto inválido.")
-                        else:
-                            ok,msg = place_bet(i,st.session_state.apostador_user,amt,'Dire')
-                            st.success("Registrada.") if ok else st.error(msg)
-                    except Exception as e: st.error("Error"); st.exception(e)
-        else:
-            st.info(f"Total Radiant: {total_r} | Total Dire: {total_d} | Dif: {diff}")
-            st.info("Inicia sesión para apostar.")
-
-# -----------------------------------------
-# WhatsApp flotante
-# -----------------------------------------
-whatsapp_b64 = to_base64(SOCIAL_DIR / "whatsapp.png")
-whatsapp_html = f"""
 <div style="position:fixed;bottom:20px;left:20px;z-index:1000;">
   <a href="https://wa.me/qr/4FQFJOIBKQXFP1" target="_blank">
     <img src="data:image/png;base64,{whatsapp_b64}" style="width:60px;" class="social-icon"/>
   </a>
 </div>
-"""
-st.markdown(whatsapp_html, unsafe_allow_html=True)
+""", unsafe_allow_html=True)
+
+# -----------------------------------------
+# Sidebar: Auth
+# -----------------------------------------
+if 'is_admin' not in st.session_state: st.session_state.is_admin=False
+if 'apostador' not in st.session_state: st.session_state.apostador=None
+if 'apostador_user' not in st.session_state: st.session_state.apostador_user=None
+
+auth = st.sidebar
+if st.session_state.apostador is None:
+    with auth.expander("👑 Admin",expanded=True):
+        if not st.session_state.is_admin:
+            u=st.text_input("Usuario Admin",key="admin_u")
+            p=st.text_input("Contraseña Admin",type="password",key="admin_p")
+            if st.button("Ingresar Admin"):  
+                if u=='yair'and p=='yair123':st.session_state.is_admin=True;st.success("Admin autenticado")
+                else:st.error("Credenciales incorrectas")
+        else:
+            st.write("Admin conectado")
+            if st.button("Cerrar sesión Admin"):st.session_state.is_admin=False;st.success("Sesión cerrada")
+auth.markdown("---")
+with auth.expander("🎲 Apostador",expanded=True):
+    mode=st.radio("Acción",("Login","Registrar"),key="mode_user")
+    usr=st.text_input("Usuario",key="usr")
+    pwd=st.text_input("Contraseña",type="password",key="pwd")
+    conn=get_db_connection();cur=conn.cursor()
+    if mode=="Registrar" and st.button("Crear cuenta"):
+        if not valid_password(pwd):st.error("La contraseña requiere 7+ caract.,1 mayúscula y 1 símbolo.")
+        else:
+            try:cur.execute("INSERT INTO users_apostador(username,password)VALUES(%s,%s)",(usr,pwd));conn.commit();st.success("Cuenta creada.")
+            except psycopg2.IntegrityError:st.error("El usuario ya existe.")
+    if mode=="Login" and st.button("Ingresar"):
+        cur.execute("SELECT id FROM users_apostador WHERE username=%s AND password=%s",(usr,pwd))
+        rec=cur.fetchone()
+        if rec:st.session_state.apostador=rec[0];st.session_state.apostador_user=usr;st.success(f"Bienvenido, {usr}")
+        else:st.error("Credenciales inválidas")
+    cur.close();conn.close()
+auth.markdown("---")
+if st.session_state.apostador:
+    auth.write(f"👤 {st.session_state.apostador_user}")
+    conn=get_db_connection();cur=conn.cursor()
+    cur.execute("SELECT coins FROM users_apostador WHERE id=%s",(st.session_state.apostador,))
+    bal=cur.fetchone()[0];cur.close();conn.close()
+    auth.write(f"💰 {bal:,} ÑataCoins")
+    if auth.button("Cerrar sesión Apostador"):st.session_state.apostador=None;st.success("Sesión cerrada")
+
+# -----------------------------------------
+# Pestañas de juegos
+# -----------------------------------------
+tabs=st.tabs(["Game 1","Game 2","Game 3"])
+for i,tab in enumerate(tabs,start=1):  
+    with tab:
+        st.subheader(f"Apuestas - Game {i}")
+        tr,td,d=get_summary(i)
+        if st.session_state.is_admin:
+            df=pd.DataFrame(get_bets(i),columns=["ID","Usuario","Monto","Equipo","Hora"])
+            st.table(df)
+            c1,c2=st.columns(2)
+            if c1.button(f"GANO RADIANT_{i}",key=f"win_r{i}"):settle_bets(i,'Radiant');st.success("Pagos Radiant.")
+            if c2.button(f"GANO DIRE_{i}",key=f"win_d{i}"):settle_bets(i,'Dire');st.success("Pagos Dire.")
+        elif st.session_state.apostador:
+            st.write(f"Total Radiant: {tr} | Total Dire: {td} | Dif: {d}")
+            amt=st.number_input("Monto a apostar",min_value=1,step=1,key=f"amt_{i}")
+            rcol,dcol=st.columns(2)
+            with rcol:
+                if st.button("APOSTAR RADIANT",key=f"bet_r{i}"):
+                    try:
+                        if amt<=0:st.warning("Monto inválido.")
+                        else:
+                            ok,msg=place_bet(i,st.session_state.apostador_user,amt,'Radiant')
+                            st.success("Registrada.") if ok else st.error(msg)
+                    except Exception as e:st.error("Error");st.exception(e)
+            with dcol:
+                if st.button("APOSTAR DIRE",key=f"bet_d{i}"):
+                    try:
+                        if amt<=0:st.warning("Monto inválido.")
+                        else:
+                            ok,msg=place_bet(i,st.session_state.apostador_user,amt,'Dire')
+                            st.success("Registrada.") if ok else st.error(msg)
+                    except Exception as e:st.error("Error");st.exception(e)
+        else:
+            st.info(f"Total Radiant: {tr} | Total Dire: {td} | Dif: {d}")
+            st.info("Inicia sesión para apostar.")
