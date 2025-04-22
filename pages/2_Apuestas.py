@@ -50,7 +50,8 @@ def init_db():
             monto INT,
             equipo TEXT,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        )""")
+        )
+    """)
     cur.execute("""
         CREATE TABLE IF NOT EXISTS users_apostador (
             id SERIAL PRIMARY KEY,
@@ -58,7 +59,8 @@ def init_db():
             password TEXT,
             coins INT DEFAULT 0,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        )""")
+        )
+    """)
     conn.commit(); cur.close(); conn.close()
 
 init_db()
@@ -119,7 +121,7 @@ def settle_bets(game_id, winner):
     conn.commit(); cur.close(); conn.close()
 
 # -----------------------------------------
-# Estilos globales
+# Estilos globales y Header
 # -----------------------------------------
 st.markdown(f"""
 <style>
@@ -127,13 +129,45 @@ st.markdown(f"""
     background: url('data:image/gif;base64,{to_base64(SOCIAL_DIR/'pato.gif')}') center 70% / cover fixed #1a1a1a;
     color: #FFF !important;
 }}
-.header-container {{ display:flex; align-items:center; justify-content:space-between; padding:10px 20px; }}
-.logo {{ width:50px; height:auto; }}
-.header-container h1 {{ font-size:2rem; margin:0; color:#FFD700;
-    text-shadow:-1px -1px 0 purple,1px -1px 0 purple,-1px 1px 0 purple,1px 1px 0 purple;
+.header-container {{
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 20px;
+    background: transparent;
 }}
-.social-icon {{ width:30px !important; margin-left:10px; transition:transform .2s; }}
-.social-icon:hover {{ transform:scale(1.1); }}
+.logo {{
+    width: 70px !important;
+    height: auto;
+}}
+.header-container h1 {{
+    color: #FFF !important;
+    margin: 0;
+    font-size: 2.5rem;
+    -webkit-text-stroke: 1px purple;
+    text-shadow: -1px -1px 0 purple, 1px -1px 0 purple, -1px 1px 0 purple, 1px 1px 0 purple;
+}}
+.social-icon {{
+    width: 40px !important;
+    margin-left: 12px;
+    transition: transform 0.2s;
+    background: transparent;
+}}
+.social-icon:hover {{
+    transform: scale(1.1);
+}}
+</style>
+
+<div class="header-container">
+  <div style="display:flex;align-items:center;gap:12px;">
+    <img src="data:image/png;base64,{to_base64(SOCIAL_DIR/'titulo.png')}" class="logo" />
+    <h1>ÑATABET</h1>
+  </div>
+  <div style="display:flex;align-items:center;gap:12px;">
+    <a href="https://kick.com/yairlonelys" target="_blank"><img src="data:image/png;base64,{to_base64(SOCIAL_DIR/'kick.png')}" class="social-icon"/></a>
+    <a href="https://x.com/YairLonelys" target="_blank"><img src="data:image/png;base64,{to_base64(SOCIAL_DIR/'x.png')}" class="social-icon"/></a>
+    <a href="https://www.tiktok.com/@yairlonelyss" target="_blank"><img src="data:image/png;base64,{to_base64(SOCIAL_DIR/'tiktok.png')}" class="social-icon"/></a>
+  </div>
 </style>
 """, unsafe_allow_html=True)
 
@@ -162,28 +196,22 @@ if st.session_state.apostador is None:
 auth.markdown("---")
 
 # Apostador login/registro
-def handle_apostador():
-    mode = st.radio("Acción", ("Login","Registrarse"), key="mode_user")
+with auth.expander("🎲 Apostador", expanded=True):
+    mode = st.radio("Acción", ("Login","Registrar"), key="mode_user")
     usr = st.text_input("Usuario", key="usr")
     pwd = st.text_input("Contraseña", type="password", key="pwd")
     conn = get_db_connection(); cur = conn.cursor()
-    if mode == "Registrarse" and st.button("Crear cuenta"):
+    if mode == "Registrar" and st.button("Crear cuenta"):
         if not valid_password(pwd): st.error("La contraseña requiere 7+ caract., 1 mayúscula y 1 símbolo.")
         else:
-            try:
-                cur.execute("INSERT INTO users_apostador (username,password) VALUES (%s,%s)", (usr,pwd))
-                conn.commit(); st.success("Cuenta creada. Ingresa ahora.")
+            try: cur.execute("INSERT INTO users_apostador (username,password) VALUES (%s,%s)", (usr,pwd)); conn.commit(); st.success("Cuenta creada.")
             except psycopg2.IntegrityError: st.error("El usuario ya existe.")
     if mode == "Login" and st.button("Ingresar"):
         cur.execute("SELECT id FROM users_apostador WHERE username=%s AND password=%s", (usr,pwd))
         rec = cur.fetchone()
-        if rec:
-            st.session_state.apostador = rec[0]; st.session_state.apostador_user = usr; st.success(f"Bienvenido, {usr}")
+        if rec: st.session_state.apostador = rec[0]; st.session_state.apostador_user = usr; st.success(f"Bienvenido, {usr}")
         else: st.error("Usuario o contraseña incorrectos.")
     cur.close(); conn.close()
-
-with auth.expander("🎲 Apostador", expanded=True):
-    handle_apostador()
 
 # Indicador/Logout para apostador
 auth.markdown("---")
@@ -193,26 +221,7 @@ if st.session_state.apostador:
     cur.execute("SELECT coins FROM users_apostador WHERE id=%s", (st.session_state.apostador,))
     balance = cur.fetchone()[0]; cur.close(); conn.close()
     auth.write(f"💰 {balance:,} ÑataCoins")
-    if auth.button("Cerrar sesión Apostador"):
-        st.session_state.apostador = None; st.session_state.apostador_user = None; st.success("Sesión cerrada")
-
-# -----------------------------------------
-# Header principal y redes
-# -----------------------------------------
-logo_b64 = to_base64(SOCIAL_DIR/'titulo.png')
-st.markdown(f"""
-<div class="header-container">
-  <div style="display:flex;gap:12px;align-items:center;">
-    <img src="data:image/png;base64,{logo_b64}" class="logo"/>
-    <h1>ÑATABET</h1>
-  </div>
-  <div style="display:flex;align-items:center;">
-    <a href="https://kick.com/yairlonelys" target="_blank"><img src="data:image/png;base64,{to_base64(SOCIAL_DIR/'kick.png')}" class="social-icon"/></a>
-    <a href="https://x.com/YairLonelys" target="_blank"><img src="data:image/png;base64,{to_base64(SOCIAL_DIR/'x.png')}" class="social-icon"/></a>
-    <a href="https://www.tiktok.com/@yairlonelyss" target="_blank"><img src="data:image/png;base64,{to_base64(SOCIAL_DIR/'tiktok.png')}" class="social-icon"/></a>
-  </div>
-</div>
-""", unsafe_allow_html=True)
+    if auth.button("Cerrar sesión Apostador"): st.session_state.apostador=None; st.success("Sesión cerrada")
 
 # -----------------------------------------
 # Pestañas de juegos y lógica de apuestas
@@ -226,38 +235,28 @@ for i, tab in enumerate(tabs, start=1):
             df = pd.DataFrame(get_bets(i), columns=["ID","Usuario","Monto","Equipo","Hora"])
             st.table(df)
             c1, c2 = st.columns(2)
-            if c1.button(f"GANO RADIANT_{i}", key=f"win_r{i}"):
-                settle_bets(i, 'Radiant'); st.success("Pagos realizados a Radiant.")
-            if c2.button(f"GANO DIRE_{i}", key=f"win_d{i}"):
-                settle_bets(i, 'Dire'); st.success("Pagos realizados a Dire.")
+            if c1.button(f"GANO RADIANT_{i}", key=f"win_r{i}"): settle_bets(i,'Radiant'); st.success("Pagos Radiant.")
+            if c2.button(f"GANO DIRE_{i}", key=f"win_d{i}"): settle_bets(i,'Dire'); st.success("Pagos Dire.")
         elif st.session_state.apostador:
             st.write(f"Total Radiant: {total_r} | Total Dire: {total_d} | Dif: {diff}")
             amt = st.number_input("Monto a apostar", min_value=1, step=1, key=f"amt_{i}")
-            col_r, col_d = st.columns(2)
-            with col_r:
+            rcol, dcol = st.columns(2)
+            with rcol:
                 if st.button("APOSTAR RADIANT", key=f"bet_r{i}"):
                     try:
-                        if amt <= 0:
-                            st.warning("Ingresa un monto válido.")
-                        elif total_r > total_d:
-                            st.warning("Radiant tiene más apuestas ahora.")
+                        if amt<=0: st.warning("Monto inválido.")
                         else:
-                            ok, msg = place_bet(i, st.session_state.apostador_user, amt, 'Radiant')
-                            st.success("Apuesta registrada.") if ok else st.error(msg)
-                    except Exception as e:
-                        st.error("Error al procesar la apuesta."); st.exception(e)
-            with col_d:
+                            ok,msg = place_bet(i,st.session_state.apostador_user,amt,'Radiant')
+                            st.success("Registrada.") if ok else st.error(msg)
+                    except Exception as e: st.error("Error"); st.exception(e)
+            with dcol:
                 if st.button("APOSTAR DIRE", key=f"bet_d{i}"):
                     try:
-                        if amt <= 0:
-                            st.warning("Ingresa un monto válido.")
-                        elif total_d > total_r:
-                            st.warning("Dire tiene más apuestas ahora.")
+                        if amt<=0: st.warning("Monto inválido.")
                         else:
-                            ok, msg = place_bet(i, st.session_state.apostador_user, amt, 'Dire')
-                            st.success("Apuesta registrada.") if ok else st.error(msg)
-                    except Exception as e:
-                        st.error("Error al procesar la apuesta."); st.exception(e)
+                            ok,msg = place_bet(i,st.session_state.apostador_user,amt,'Dire')
+                            st.success("Registrada.") if ok else st.error(msg)
+                    except Exception as e: st.error("Error"); st.exception(e)
         else:
             st.info(f"Total Radiant: {total_r} | Total Dire: {total_d} | Dif: {diff}")
-            st.info("Inicia sesión para apostar o ver más detalles.")
+            st.info("Inicia sesión para apostar.")
