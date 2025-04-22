@@ -125,11 +125,11 @@ def settle_bets(game_id, winner):
 # -----------------------------------------
 # Estilos y Header HTML
 # -----------------------------------------
-pato_b64 = to_base64(SOCIAL_DIR/"pato.gif")
-titulo_b64 = to_base64(SOCIAL_DIR/"titulo.png")
-kick_b64 = to_base64(SOCIAL_DIR/"kick.png")
-x_b64 = to_base64(SOCIAL_DIR/"x.png")
-tiktok_b64 = to_base64(SOCIAL_DIR/"tiktok.png")
+pato_b64 = to_base64(SOCIAL_DIR / "pato.gif")
+titulo_b64 = to_base64(SOCIAL_DIR / "titulo.png")
+kick_b64 = to_base64(SOCIAL_DIR / "kick.png")
+x_b64 = to_base64(SOCIAL_DIR / "x.png")
+tiktok_b64 = to_base64(SOCIAL_DIR / "tiktok.png")
 
 # CSS
 st.markdown(f"""
@@ -265,3 +265,16 @@ for i, tab in enumerate(tabs, start=1):
         else:
             st.info(f"Total Radiant: {total_r} | Total Dire: {total_d} | Dif: {diff}")
             st.info("Inicia sesión para apostar.")
+
+# -----------------------------------------
+# WhatsApp flotante
+# -----------------------------------------
+whatsapp_b64 = to_base64(SOCIAL_DIR / "whatsapp.png")
+whatsapp_html = f"""
+<div style="position:fixed;bottom:20px;left:20px;z-index:1000;">
+  <a href="https://wa.me/qr/4FQFJOIBKQXFP1" target="_blank">
+    <img src="data:image/png;base64,{whatsapp_b64}" style="width:60px;" class="social-icon"/>
+  </a>
+</div>
+"""
+st.markdown(whatsapp_html, unsafe_allow_html=True)
