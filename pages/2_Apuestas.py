@@ -86,7 +86,6 @@ def get_summary(game_id):
 
 
 def place_bet(game_id, username, amount, team):
-    # Realiza la apuesta descontando coins y guardando registro
     conn = get_db_connection(); cur = conn.cursor()
     cur.execute("SELECT coins FROM users_apostador WHERE username = %s", (username,))
     result = cur.fetchone()
@@ -95,7 +94,10 @@ def place_bet(game_id, username, amount, team):
     coins = result[0]
     if amount > coins:
         cur.close(); conn.close(); return False, "Saldo insuficiente"
-    cur.execute("UPDATE users_apostador SET coins = coins - %s WHERE username = %s", (amount, username))
+    cur.execute(
+        "UPDATE users_apostador SET coins = coins - %s WHERE username = %s",
+        (amount, username)
+    )
     cur.execute(
         "INSERT INTO bets (game_id, username, monto, equipo) VALUES (%s, %s, %s, %s)",
         (game_id, username, amount, team)
@@ -121,12 +123,19 @@ def settle_bets(game_id, winner):
     conn.commit(); cur.close(); conn.close()
 
 # -----------------------------------------
-# Estilos globales y Header
+# Estilos y Header HTML
 # -----------------------------------------
+pato_b64 = to_base64(SOCIAL_DIR/"pato.gif")
+titulo_b64 = to_base64(SOCIAL_DIR/"titulo.png")
+kick_b64 = to_base64(SOCIAL_DIR/"kick.png")
+x_b64 = to_base64(SOCIAL_DIR/"x.png")
+tiktok_b64 = to_base64(SOCIAL_DIR/"tiktok.png")
+
+# CSS
 st.markdown(f"""
 <style>
 .stApp {{
-    background: url('data:image/gif;base64,{to_base64(SOCIAL_DIR/'pato.gif')}') center 70% / cover fixed #1a1a1a;
+    background: url('data:image/gif;base64,{pato_b64}') center 70% / cover fixed #1a1a1a;
     color: #FFF !important;
 }}
 .header-container {{
@@ -134,41 +143,39 @@ st.markdown(f"""
     align-items: center;
     justify-content: space-between;
     padding: 10px 20px;
-    background: transparent;
 }}
-.logo {{
-    width: 70px !important;
-    height: auto;
-}}
+.logo {{ width: 70px; height: auto; background: transparent; }}
 .header-container h1 {{
-    color: #FFF !important;
+    color: #FFF;
     margin: 0;
     font-size: 2.5rem;
     -webkit-text-stroke: 1px purple;
     text-shadow: -1px -1px 0 purple, 1px -1px 0 purple, -1px 1px 0 purple, 1px 1px 0 purple;
 }}
-.social-icon {{
-    width: 40px !important;
-    margin-left: 12px;
-    transition: transform 0.2s;
-    background: transparent;
-}}
-.social-icon:hover {{
-    transform: scale(1.1);
-}}
+.social-icon {{ width: 40px; margin-left: 12px; background: transparent; transition: transform .2s; }}
+.social-icon:hover {{ transform: scale(1.1); }}
 </style>
+""", unsafe_allow_html=True)
 
+# Header HTML
+st.markdown(f"""
 <div class="header-container">
   <div style="display:flex;align-items:center;gap:12px;">
-    <img src="data:image/png;base64,{to_base64(SOCIAL_DIR/'titulo.png')}" class="logo" />
+    <img src="data:image/png;base64,{titulo_b64}" class="logo" />
     <h1>ÑATABET</h1>
   </div>
   <div style="display:flex;align-items:center;gap:12px;">
-    <a href="https://kick.com/yairlonelys" target="_blank"><img src="data:image/png;base64,{to_base64(SOCIAL_DIR/'kick.png')}" class="social-icon"/></a>
-    <a href="https://x.com/YairLonelys" target="_blank"><img src="data:image/png;base64,{to_base64(SOCIAL_DIR/'x.png')}" class="social-icon"/></a>
-    <a href="https://www.tiktok.com/@yairlonelyss" target="_blank"><img src="data:image/png;base64,{to_base64(SOCIAL_DIR/'tiktok.png')}" class="social-icon"/></a>
+    <a href="https://kick.com/yairlonelys" target="_blank">
+      <img src="data:image/png;base64,{kick_b64}" class="social-icon" />
+    </a>
+    <a href="https://x.com/YairLonelys" target="_blank">
+      <img src="data:image/png;base64,{x_b64}" class="social-icon" />
+    </a>
+    <a href="https://www.tiktok.com/@yairlonelyss" target="_blank">
+      <img src="data:image/png;base64,{tiktok_b64}" class="social-icon" />
+    </a>
   </div>
-</style>
+</div>
 """, unsafe_allow_html=True)
 
 # -----------------------------------------
@@ -179,7 +186,6 @@ if 'apostador' not in st.session_state: st.session_state.apostador = None
 if 'apostador_user' not in st.session_state: st.session_state.apostador_user = None
 
 auth = st.sidebar
-
 # Admin login (oculto si hay apostador)
 if st.session_state.apostador is None:
     with auth.expander("👑 Admin", expanded=True):
@@ -194,7 +200,6 @@ if st.session_state.apostador is None:
             if st.button("Cerrar sesión Admin"): st.session_state.is_admin = False; st.success("Sesión cerrada")
 
 auth.markdown("---")
-
 # Apostador login/registro
 with auth.expander("🎲 Apostador", expanded=True):
     mode = st.radio("Acción", ("Login","Registrar"), key="mode_user")
@@ -213,15 +218,15 @@ with auth.expander("🎲 Apostador", expanded=True):
         else: st.error("Usuario o contraseña incorrectos.")
     cur.close(); conn.close()
 
-# Indicador/Logout para apostador
 auth.markdown("---")
+# Indicador/Logout para apostador
 if st.session_state.apostador:
     auth.write(f"👤 {st.session_state.apostador_user}")
     conn = get_db_connection(); cur = conn.cursor()
     cur.execute("SELECT coins FROM users_apostador WHERE id=%s", (st.session_state.apostador,))
     balance = cur.fetchone()[0]; cur.close(); conn.close()
     auth.write(f"💰 {balance:,} ÑataCoins")
-    if auth.button("Cerrar sesión Apostador"): st.session_state.apostador=None; st.success("Sesión cerrada")
+    if auth.button("Cerrar sesión Apostador"): st.session_state.apostador=None; st.session_state.apostador_user=None; st.success("Sesión cerrada")
 
 # -----------------------------------------
 # Pestañas de juegos y lógica de apuestas
