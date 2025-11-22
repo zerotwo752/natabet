@@ -21,7 +21,7 @@ YAPE_PATH = BASE_DIR / "yape"
 # URL de la base de datos en Railway / Streamlit Cloud
 DATABASE_URL = os.getenv(
     "DATABASE_URL",
-    "postgresql://postgres:wKuijKwZqsUgOZJhiEqXraNgXugQnShg@caboose.proxy.rlwy.net:25343/railway?sslmode=require"
+    "postgresql://neondb_owner:npg_ETUWkG1HR2SB@ep-odd-voice-a4ejeg4u-pooler.us-east-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require"
 )
 
 # -----------------------------------------
