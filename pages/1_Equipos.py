@@ -680,7 +680,7 @@ header_html = f"""
     <span class="brand-name">ÑATABET</span>
   </div>
   <div class="right-links">
-    <a href="https://kick.com/yairlonelys" target="_blank">
+    <a href="https://kick.com/lonelys1" target="_blank">
         <img src="data:image/png;base64,{kick_img_base64}" class="social-icon">
     </a>
     <a href="https://x.com/YairLonelys" target="_blank">
