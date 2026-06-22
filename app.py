@@ -16,7 +16,7 @@ TIEMPO_SIMULACION = 28800  # 8 horas de jornada en segundos: 8:00 a. m. - 4:00 p
 MEDIA_ENTRADA = 32  # A mayor media, entran menos botellones por jornada.
 DESVIACION_ENTRADA = 4
 PROBABILIDAD_BOTELLON_BUENO = 0.95
-PROBABILIDAD_LAVADO_TAMBOR = 0.35  # Mantiene visible el apoyo semiautomático del tambor en el AS IS.
+PROBABILIDAD_LAVADO_TAMBOR = 0.35  # Referencia histórica; el tambor solo se usa cuando el lavado manual está saturado.
 LITROS_POR_BOTELLON = 7
 
 CAPACIDAD_INSPECCION = 1
@@ -60,23 +60,25 @@ class EmbotelladoraAsIsGUI:
         self.var_modo_vel = tk.StringVar(value="Velocidad: Normal (1s/s)")
         
         self.resumen_metrics = {
-            "GENERAL": {"eficiencia": tk.StringVar(value="0.0%"), "descarte": tk.StringVar(value="0.0%")},
-            "MANUAL": {"cola": tk.StringVar(value="0"), "uso": tk.StringVar(value="0/4 Op")},
-            "TAMBOR": {"cola": tk.StringVar(value="0"), "uso": tk.StringVar(value="0/2 Op")},
-            "ENJUAGUE": {"cola": tk.StringVar(value="0"), "uso": tk.StringVar(value="0/4 Op")},
-            "LLENADO": {"cola": tk.StringVar(value="0"), "uso": tk.StringVar(value="0/2 Op")},
-            "SELLADO": {"cola": tk.StringVar(value="0"), "uso": tk.StringVar(value="0/2 Op")}
+            "GENERAL": {"eficiencia": tk.StringVar(value="0.0%"), "descarte": tk.StringVar(value="0.0%"), "tiempo_promedio": tk.StringVar(value="0.0 s")},
+            "MANUAL": {"cola": tk.StringVar(value="0"), "uso": tk.StringVar(value="0/4 Op"), "tiempo_promedio": tk.StringVar(value="0.0 s")},
+            "TAMBOR": {"cola": tk.StringVar(value="0"), "uso": tk.StringVar(value="0/2 Op"), "tiempo_promedio": tk.StringVar(value="0.0 s")},
+            "ENJUAGUE": {"cola": tk.StringVar(value="0"), "uso": tk.StringVar(value="0/4 Op"), "tiempo_promedio": tk.StringVar(value="0.0 s")},
+            "LLENADO": {"cola": tk.StringVar(value="0"), "uso": tk.StringVar(value="0/2 Op"), "tiempo_promedio": tk.StringVar(value="0.0 s")},
+            "SELLADO": {"cola": tk.StringVar(value="0"), "uso": tk.StringVar(value="0/2 Op"), "tiempo_promedio": tk.StringVar(value="0.0 s")}
         }
         
         self.total_llegaron = 0
         self.botellas_defectuosas_inicio = 0
         self.botellas_exito = 0
         self.mermas_agua = 0
+        self.tiempo_total_botellas_exitosas = 0.0
         
         self.historico_tiempo = []
         self.historico_procesados = []
         self.historico_colas = {"MANUAL": [], "TAMBOR": [], "ENJUAGUE": [], "LLENADO": [], "SELLADO": []}
         self.contador_estaciones = {"MANUAL": 0, "TAMBOR": 0, "ENJUAGUE": 0, "LLENADO": 0, "SELLADO": 0}
+        self.tiempo_total_estaciones = {"MANUAL": 0.0, "TAMBOR": 0.0, "ENJUAGUE": 0.0, "LLENADO": 0.0, "SELLADO": 0.0}
         self.historico_estaciones = {"MANUAL": [], "TAMBOR": [], "ENJUAGUE": [], "LLENADO": [], "SELLADO": []}
         self.contador_muestreo = 0
         
@@ -179,12 +181,12 @@ class EmbotelladoraAsIsGUI:
         self.categoria_actual = "GENERAL"
         
         categorias = [
-            ("GENERAL", "📈 Resumen General", self.resumen_metrics["GENERAL"]["eficiencia"], "Yield: "),
-            ("MANUAL", "🧼 Lavado Manual", self.resumen_metrics["MANUAL"]["cola"], "En Cola: "),
-            ("TAMBOR", "🤖 Lavado Tambor", self.resumen_metrics["TAMBOR"]["cola"], "En Cola: "),
-            ("ENJUAGUE", "🚿 Módulo Enjuague", self.resumen_metrics["ENJUAGUE"]["cola"], "En Cola: "),
-            ("LLENADO", "⚡ Módulo Llenado", self.resumen_metrics["LLENADO"]["cola"], "En Cola: "),
-            ("SELLADO", "🏷️ Módulo Sellado", self.resumen_metrics["SELLADO"]["cola"], "En Cola: ")
+            ("GENERAL", "📈 Resumen General", self.resumen_metrics["GENERAL"]["tiempo_promedio"], "Prom. total: "),
+            ("MANUAL", "🧼 Lavado Manual", self.resumen_metrics["MANUAL"]["tiempo_promedio"], "Promedio: "),
+            ("TAMBOR", "🤖 Lavado Tambor", self.resumen_metrics["TAMBOR"]["tiempo_promedio"], "Promedio: "),
+            ("ENJUAGUE", "🚿 Módulo Enjuague", self.resumen_metrics["ENJUAGUE"]["tiempo_promedio"], "Promedio: "),
+            ("LLENADO", "⚡ Módulo Llenado", self.resumen_metrics["LLENADO"]["tiempo_promedio"], "Promedio: "),
+            ("SELLADO", "🏷️ Módulo Sellado", self.resumen_metrics["SELLADO"]["tiempo_promedio"], "Promedio: ")
         ]
         
         for clave, titulo, var_v, prefijo in categorias:
@@ -209,7 +211,7 @@ class EmbotelladoraAsIsGUI:
 
         self.frame_detalle_grafico = tk.Frame(self.tab_datos, bg="#111416")
         self.frame_detalle_grafico.grid(row=0, column=1, sticky="nsew", padx=(5, 10), pady=10)
-        self.frame_detalle_grafico.grid_rowconfigure(2, weight=1)
+        self.frame_detalle_grafico.grid_rowconfigure(3, weight=1)
         self.frame_detalle_grafico.grid_columnconfigure(0, weight=1)
         
         self.lbl_detalle_titulo = tk.Label(self.frame_detalle_grafico, text="MÓDULO: RESUMEN GENERAL", font=("Segoe UI", 14, "bold"), fg="#57f287", bg="#111416")
@@ -217,6 +219,26 @@ class EmbotelladoraAsIsGUI:
         
         self.lbl_sub_info = tk.Label(self.frame_detalle_grafico, text="Visualización de métricas críticas en tiempo real", font=("Segoe UI", 9), fg="#99aab5", bg="#111416")
         self.lbl_sub_info.grid(row=1, column=0, sticky="w", pady=(0, 10))
+
+        self.frame_tiempos_promedio = tk.Frame(self.frame_detalle_grafico, bg="#111416")
+        self.frame_tiempos_promedio.grid(row=2, column=0, sticky="ew", pady=(0, 10))
+        self.frame_tiempos_promedio.grid_columnconfigure((0, 1, 2, 3, 4, 5), weight=1)
+        self.lbls_tiempos_promedio = {}
+        estaciones_tiempo = [
+            ("GENERAL", "📈 Total", "#57f287"),
+            ("MANUAL", "🧼 Manual", "#3498db"),
+            ("TAMBOR", "🤖 Tambor", "#1abc9c"),
+            ("ENJUAGUE", "🚿 Enjuague", "#fee75c"),
+            ("LLENADO", "⚡ Llenado", "#faa61a"),
+            ("SELLADO", "🏷️ Sellado", "#e67e22"),
+        ]
+        for col, (clave, titulo, color) in enumerate(estaciones_tiempo):
+            frame_tiempo = tk.Frame(self.frame_tiempos_promedio, bg="#1a1d20", padx=8, pady=6)
+            frame_tiempo.grid(row=0, column=col, sticky="ew", padx=3)
+            tk.Label(frame_tiempo, text=titulo, font=("Segoe UI", 8, "bold"), fg=color, bg="#1a1d20").pack(anchor="w")
+            lbl_valor = tk.Label(frame_tiempo, textvariable=self.resumen_metrics[clave]["tiempo_promedio"], font=("Consolas", 12, "bold"), fg="#ffffff", bg="#1a1d20")
+            lbl_valor.pack(anchor="w")
+            self.lbls_tiempos_promedio[clave] = lbl_valor
         
         self.fig, self.ax = plt.subplots(figsize=(7, 4))
         self.fig.patch.set_facecolor('#1a1d20')
@@ -229,7 +251,7 @@ class EmbotelladoraAsIsGUI:
         self.fig.tight_layout()
         
         self.canvas_graficos = FigureCanvasTkAgg(self.fig, master=self.frame_detalle_grafico)
-        self.canvas_graficos.get_tk_widget().grid(row=2, column=0, sticky="nsew")
+        self.canvas_graficos.get_tk_widget().grid(row=3, column=0, sticky="nsew")
 
     def cambiar_categoria_grafico(self, clave):
         self.categoria_actual = clave
@@ -376,8 +398,25 @@ class EmbotelladoraAsIsGUI:
             self.btn_pause.config(state="disabled", bg="#4f545c", text="⏸ PAUSADO")
             self.btn_run.config(state="normal", bg="#2ecc71", text="▶ REANUDAR")
 
+    def registrar_tiempo_estacion(self, estacion, inicio):
+        self.tiempo_total_estaciones[estacion] += max(0, self.env.now - inicio)
+
+    def formatear_promedio_estacion(self, estacion):
+        cantidad = self.contador_estaciones[estacion]
+        if cantidad == 0:
+            return "0.0 s"
+        promedio = self.tiempo_total_estaciones[estacion] / cantidad
+        return f"{promedio:.1f} s"
+
+    def formatear_promedio_total(self):
+        if self.botellas_exito == 0:
+            return "0.0 s"
+        promedio = self.tiempo_total_botellas_exitosas / self.botellas_exito
+        return f"{promedio:.1f} s"
+
     def ejecutar_simpy_backend(self):
         env = simpy.Environment()
+        self.env = env
         self.res_inspeccion = simpy.Resource(env, capacity=CAPACIDAD_INSPECCION)
         self.res_lav_manual = simpy.Resource(env, capacity=CAPACIDAD_LAVADO_MANUAL)
         self.res_lav_maquina = simpy.Resource(env, capacity=CAPACIDAD_LAVADO_TAMBOR)
@@ -409,7 +448,9 @@ class EmbotelladoraAsIsGUI:
                     len(self.res_enjuague.queue), len(self.res_llenado.queue), len(self.res_sellado.queue),
                     self.res_lav_manual.count, self.res_lav_maquina.count,
                     self.res_enjuague.count, self.res_llenado.count, self.res_sellado.count,
-                    segundos_totales
+                    self.formatear_promedio_total(), self.formatear_promedio_estacion("MANUAL"), self.formatear_promedio_estacion("TAMBOR"),
+                    self.formatear_promedio_estacion("ENJUAGUE"), self.formatear_promedio_estacion("LLENADO"),
+                    self.formatear_promedio_estacion("SELLADO"), segundos_totales
                 )))
             except queue.Full:
                 pass
@@ -430,6 +471,7 @@ class EmbotelladoraAsIsGUI:
 
     def flujo_botella(self, env, id_b):
         y = self.y_faja_ref
+        inicio_flujo = env.now
         
         self.despachar_movimiento(id_b, 20, y, 45, y, estado="CAMINANDO")
         yield env.timeout(2)  
@@ -449,11 +491,12 @@ class EmbotelladoraAsIsGUI:
         self.despachar_movimiento(id_b, 70, y, 220, y)
         yield env.timeout(4)  
 
-        usar_tambor = random.random() < PROBABILIDAD_LAVADO_TAMBOR
-        if not usar_tambor and self.res_lav_manual.count < self.res_lav_manual.capacity:
+        lavado_manual_saturado = self.res_lav_manual.count >= self.res_lav_manual.capacity or len(self.res_lav_manual.queue) > 0
+        if not lavado_manual_saturado:
             self.despachar_movimiento(id_b, 220, y, 240, y-70, estado="CAMINANDO", canal_cola="MANUAL")
             yield env.timeout(3)
             self.actualizar_texto_cola_directo("MANUAL", len(self.res_lav_manual.queue) + 1)
+            inicio_estacion = env.now
             with self.res_lav_manual.request() as req:
                 yield req
                 self.contador_estaciones["MANUAL"] += 1
@@ -463,7 +506,8 @@ class EmbotelladoraAsIsGUI:
                 x_op = 300 + (idx_op * 45)
                 self.despachar_movimiento(id_b, 240, y-70, x_op, y-70, duracion_espera=TIEMPO_LAVADO_MANUAL, estado="EN_PROCESO", y_proceso=y-85)
                 yield env.timeout(TIEMPO_LAVADO_MANUAL)
-                self.slots_manual[idx_op] = False 
+                self.slots_manual[idx_op] = False
+                self.registrar_tiempo_estacion("MANUAL", inicio_estacion)
             
             self.despachar_movimiento(id_b, x_op, y-70, 460, y-70)
             yield env.timeout(4)
@@ -472,6 +516,7 @@ class EmbotelladoraAsIsGUI:
             self.despachar_movimiento(id_b, 220, y, 240, y+70, estado="CAMINANDO", canal_cola="TAMBOR")
             yield env.timeout(3)
             self.actualizar_texto_cola_directo("TAMBOR", len(self.res_lav_maquina.queue) + 1)
+            inicio_estacion = env.now
             with self.res_lav_maquina.request() as req:
                 yield req
                 self.contador_estaciones["TAMBOR"] += 1
@@ -482,6 +527,7 @@ class EmbotelladoraAsIsGUI:
                 self.despachar_movimiento(id_b, 240, y+70, x_op, y+70, duracion_espera=TIEMPO_LAVADO_TAMBOR, estado="EN_PROCESO", y_proceso=y+55)
                 yield env.timeout(TIEMPO_LAVADO_TAMBOR)
                 self.slots_tambor[idx_op] = False
+                self.registrar_tiempo_estacion("TAMBOR", inicio_estacion)
                 
             self.despachar_movimiento(id_b, x_op, y+70, 460, y+70)
             yield env.timeout(4)
@@ -492,6 +538,7 @@ class EmbotelladoraAsIsGUI:
         self.despachar_movimiento(id_b, 500, y, 485, y, estado="CAMINANDO", canal_cola="ENJUAGUE")
         yield env.timeout(3)
         self.actualizar_texto_cola_directo("ENJUAGUE", len(self.res_enjuague.queue) + 1)
+        inicio_estacion = env.now
         with self.res_enjuague.request() as req:
             yield req
             self.contador_estaciones["ENJUAGUE"] += 1
@@ -502,6 +549,7 @@ class EmbotelladoraAsIsGUI:
             self.despachar_movimiento(id_b, 485, y, x_op, y, duracion_espera=TIEMPO_ENJUAGUE, estado="EN_PROCESO", y_proceso=y-15)
             yield env.timeout(TIEMPO_ENJUAGUE)
             self.slots_enjuague[idx_op] = False
+            self.registrar_tiempo_estacion("ENJUAGUE", inicio_estacion)
             
         self.despachar_movimiento(id_b, x_op, y, 690, y)
         yield env.timeout(4)
@@ -509,6 +557,7 @@ class EmbotelladoraAsIsGUI:
         self.despachar_movimiento(id_b, 690, y, 670, y, estado="CAMINANDO", canal_cola="LLENADO")
         yield env.timeout(3)
         self.actualizar_texto_cola_directo("LLENADO", len(self.res_llenado.queue) + 1)
+        inicio_estacion = env.now
         with self.res_llenado.request() as req:
             yield req
             self.contador_estaciones["LLENADO"] += 1
@@ -519,6 +568,7 @@ class EmbotelladoraAsIsGUI:
             self.despachar_movimiento(id_b, 670, y, x_op, y, duracion_espera=TIEMPO_LLENADO, estado="EN_PROCESO", y_proceso=y-15)
             yield env.timeout(TIEMPO_LLENADO)
             self.slots_llenado[idx_op] = False
+            self.registrar_tiempo_estacion("LLENADO", inicio_estacion)
             if random.random() < 0.002: self.mermas_agua += LITROS_POR_BOTELLON; return
             
         self.despachar_movimiento(id_b, x_op, y, 850, y)
@@ -527,6 +577,7 @@ class EmbotelladoraAsIsGUI:
         self.despachar_movimiento(id_b, 850, y, 830, y, estado="CAMINANDO", canal_cola="SELLADO")
         yield env.timeout(3)
         self.actualizar_texto_cola_directo("SELLADO", len(self.res_sellado.queue) + 1)
+        inicio_estacion = env.now
         with self.res_sellado.request() as req:
             yield req
             self.contador_estaciones["SELLADO"] += 1
@@ -537,10 +588,12 @@ class EmbotelladoraAsIsGUI:
             self.despachar_movimiento(id_b, 830, y, x_op, y, duracion_espera=TIEMPO_SELLADO, estado="EN_PROCESO", y_proceso=y-15)
             yield env.timeout(TIEMPO_SELLADO)
             self.slots_sellado[idx_op] = False
+            self.registrar_tiempo_estacion("SELLADO", inicio_estacion)
         
         self.despachar_movimiento(id_b, x_op, y, 1060, y)
         yield env.timeout(5)
         self.botellas_exito += 1
+        self.tiempo_total_botellas_exitosas += env.now - inicio_flujo
 
     def procesar_logica_visual(self):
         try:
@@ -555,7 +608,7 @@ class EmbotelladoraAsIsGUI:
                     txt_map = {"MANUAL": self.txt_q_manual, "TAMBOR": self.txt_q_maquina, "ENJUAGUE": self.txt_q_enjuague, "LLENADO": self.txt_q_llenado, "SELLADO": self.txt_q_sellado}
                     self.canvas.itemconfig(txt_map[canal], text=f"Cola: {val}", fill="#ed4245" if val > 0 else "#ae9e8d")
                 elif tipo == "STATS":
-                    t, lleg, ex, df, mr, q_mn, q_mq, q_ej, q_ll, q_sl, c_mn, c_mq, c_ej, c_ll, c_sl, segs = datos
+                    t, lleg, ex, df, mr, q_mn, q_mq, q_ej, q_ll, q_sl, c_mn, c_mq, c_ej, c_ll, c_sl, avg_total, avg_mn, avg_mq, avg_ej, avg_ll, avg_sl, segs = datos
                     self.var_tiempo.set(t)
                     self.var_llegaron.set(str(lleg))
                     self.var_exito.set(str(ex))
@@ -570,6 +623,12 @@ class EmbotelladoraAsIsGUI:
                     self.resumen_metrics["ENJUAGUE"]["cola"].set(str(q_ej))
                     self.resumen_metrics["LLENADO"]["cola"].set(str(q_ll))
                     self.resumen_metrics["SELLADO"]["cola"].set(str(q_sl))
+                    self.resumen_metrics["GENERAL"]["tiempo_promedio"].set(avg_total)
+                    self.resumen_metrics["MANUAL"]["tiempo_promedio"].set(avg_mn)
+                    self.resumen_metrics["TAMBOR"]["tiempo_promedio"].set(avg_mq)
+                    self.resumen_metrics["ENJUAGUE"]["tiempo_promedio"].set(avg_ej)
+                    self.resumen_metrics["LLENADO"]["tiempo_promedio"].set(avg_ll)
+                    self.resumen_metrics["SELLADO"]["tiempo_promedio"].set(avg_sl)
                     
                     self.contador_muestreo += 1
                     frecuencia = 50 if self.get_factor_velocidad() >= 30 else 5
