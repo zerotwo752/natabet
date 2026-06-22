@@ -10,10 +10,28 @@ import time
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 
-# --- CONFIGURACIÓN DE LA SIMULACIÓN ---
+# --- CONFIGURACIÓN DE LA SIMULACIÓN AS IS ---
 SEMILLA = 42
-TIEMPO_SIMULACION = 28800  # 8 horas de jornada en segundos
-MEDIA_ENTRADA = 11         
+TIEMPO_SIMULACION = 28800  # 8 horas de jornada en segundos: 8:00 a. m. - 4:00 p. m.
+MEDIA_ENTRADA = 32  # A mayor media, entran menos botellones por jornada.
+DESVIACION_ENTRADA = 4
+PROBABILIDAD_BOTELLON_BUENO = 0.95
+PROBABILIDAD_LAVADO_TAMBOR = 0.35  # Mantiene visible el apoyo semiautomático del tambor en el AS IS.
+LITROS_POR_BOTELLON = 7
+
+CAPACIDAD_INSPECCION = 1
+CAPACIDAD_LAVADO_MANUAL = 4
+CAPACIDAD_LAVADO_TAMBOR = 2
+CAPACIDAD_ENJUAGUE = 4
+CAPACIDAD_LLENADO = 2
+CAPACIDAD_SELLADO = 2
+
+TIEMPO_INSPECCION = 8
+TIEMPO_LAVADO_MANUAL = 90
+TIEMPO_LAVADO_TAMBOR = 45
+TIEMPO_ENJUAGUE = 40
+TIEMPO_LLENADO = 35
+TIEMPO_SELLADO = 15
 
 class EmbotelladoraAsIsGUI:
     def __init__(self, root):
@@ -58,6 +76,8 @@ class EmbotelladoraAsIsGUI:
         self.historico_tiempo = []
         self.historico_procesados = []
         self.historico_colas = {"MANUAL": [], "TAMBOR": [], "ENJUAGUE": [], "LLENADO": [], "SELLADO": []}
+        self.contador_estaciones = {"MANUAL": 0, "TAMBOR": 0, "ENJUAGUE": 0, "LLENADO": 0, "SELLADO": 0}
+        self.historico_estaciones = {"MANUAL": [], "TAMBOR": [], "ENJUAGUE": [], "LLENADO": [], "SELLADO": []}
         self.contador_muestreo = 0
         
         self.simulacion_activa = False
@@ -67,11 +87,11 @@ class EmbotelladoraAsIsGUI:
         self.cola_mensajes_gui = queue.Queue(maxsize=2000) 
         self.mapeo_bolitas = {}
         
-        self.slots_manual = [False] * 4
-        self.slots_tambor = [False] * 2
-        self.slots_enjuague = [False] * 4
-        self.slots_llenado = [False] * 2
-        self.slots_sellado = [False] * 2
+        self.slots_manual = [False] * CAPACIDAD_LAVADO_MANUAL
+        self.slots_tambor = [False] * CAPACIDAD_LAVADO_TAMBOR
+        self.slots_enjuague = [False] * CAPACIDAD_ENJUAGUE
+        self.slots_llenado = [False] * CAPACIDAD_LLENADO
+        self.slots_sellado = [False] * CAPACIDAD_SELLADO
         self.conteo_colas_visuales = {"MANUAL": 0, "TAMBOR": 0, "ENJUAGUE": 0, "LLENADO": 0, "SELLADO": 0}
         
         self.main_container = tk.Frame(self.root, bg="#111416")
@@ -254,11 +274,14 @@ class EmbotelladoraAsIsGUI:
             self.ax.set_ylabel("Unidades Finalizadas", color='#99aab5', fontsize=8)
         else:
             cola_data = self.historico_colas[self.categoria_actual]
+            flujo_data = self.historico_estaciones[self.categoria_actual]
             colores = {"MANUAL": "#3498db", "TAMBOR": "#1abc9c", "ENJUAGUE": "#fee75c", "LLENADO": "#faa61a", "SELLADO": "#e67e22"}
-            self.ax.plot(x_data, cola_data, color=colores[self.categoria_actual], linewidth=2, label=f"Fila de espera {self.categoria_actual}")
-            self.ax.set_title(f"Historial de Carga y Cuellos de Botella: {self.categoria_actual}", color='white', fontsize=10, fontweight='bold')
+            color = colores[self.categoria_actual]
+            self.ax.plot(x_data, flujo_data, color=color, linewidth=2, label=f"Botellones que pasaron por {self.categoria_actual}")
+            self.ax.plot(x_data, cola_data, color="#ed4245", linewidth=1.5, linestyle="--", label=f"Fila de espera {self.categoria_actual}")
+            self.ax.set_title(f"Flujo acumulado y cola: {self.categoria_actual}", color='white', fontsize=10, fontweight='bold')
             self.ax.set_xlabel("Índice de Muestreos Operativos", color='#99aab5', fontsize=8)
-            self.ax.set_ylabel("Cantidad de Envases Retenidos", color='#99aab5', fontsize=8)
+            self.ax.set_ylabel("Cantidad de Botellones", color='#99aab5', fontsize=8)
             
         self.ax.legend(facecolor='#1a1d20', edgecolor='none', labelcolor='white', fontsize=8, loc='upper left')
         self.fig.tight_layout()
@@ -305,17 +328,17 @@ class EmbotelladoraAsIsGUI:
         self.canvas.create_text(70, y + 35, text="INSPECCIÓN\n(1 Op.)", fill="#ffffff", font=("Segoe UI", 8, "bold"))
         self.canvas.create_polygon(130, y + 110, 170, y + 110, 180, y + 135, 120, y + 135, fill="#2c2f33", outline="#ed4245")
 
-        self.ops_manual = [self.canvas.create_oval(300+i*45-10, y-115, 300+i*45+10, y-95, fill="#2ecc71", outline="#ffffff", width=2) for i in range(4)]
-        self.canvas.create_text(370, y - 130, text="Lavado Manual (4 Op.)", fill="#959da5", font=("Segoe UI", 8, "bold"))
-        self.ops_maquina = [self.canvas.create_oval(330+i*55-10, y+45, 330+i*55+10, y+65, fill="#2ecc71", outline="#ffffff", width=2) for i in range(2)]
-        self.canvas.create_text(360, y + 105, text="🤖 Tambor (2 Op.)", fill="#1abc9c", font=("Segoe UI", 8, "bold"))
+        self.ops_manual = [self.canvas.create_oval(300+i*45-10, y-115, 300+i*45+10, y-95, fill="#2ecc71", outline="#ffffff", width=2) for i in range(CAPACIDAD_LAVADO_MANUAL)]
+        self.canvas.create_text(370, y - 130, text=f"Lavado Manual ({CAPACIDAD_LAVADO_MANUAL} Op.)", fill="#959da5", font=("Segoe UI", 8, "bold"))
+        self.ops_maquina = [self.canvas.create_oval(330+i*55-10, y+45, 330+i*55+10, y+65, fill="#2ecc71", outline="#ffffff", width=2) for i in range(CAPACIDAD_LAVADO_TAMBOR)]
+        self.canvas.create_text(360, y + 105, text=f"🤖 Tambor ({CAPACIDAD_LAVADO_TAMBOR} Op.)", fill="#1abc9c", font=("Segoe UI", 8, "bold"))
 
-        self.ops_enjuague = [self.canvas.create_oval(540+i*35-10, y-45, 540+i*35+10, y-25, fill="#2ecc71", outline="#ffffff", width=2) for i in range(4)]
-        self.canvas.create_text(595, y - 60, text="🚿 Enjuague (4 Op.)", fill="#1abc9c", font=("Segoe UI", 8, "bold"))
-        self.ops_llenado = [self.canvas.create_oval(750+i*50-10, y-45, 750+i*50+10, y-25, fill="#2ecc71", outline="#ffffff", width=2) for i in range(2)]
-        self.canvas.create_text(775, y - 60, text="⚡ Llenado (2 Op.)", fill="#faa61a", font=("Segoe UI", 8, "bold"))
-        self.ops_sellado = [self.canvas.create_oval(900+i*50-10, y-45, 900+i*50+10, y-25, fill="#2ecc71", outline="#ffffff", width=2) for i in range(2)]
-        self.canvas.create_text(925, y - 60, text="🏷️ Sellado (2 Op.)", fill="#e67e22", font=("Segoe UI", 8, "bold"))
+        self.ops_enjuague = [self.canvas.create_oval(540+i*35-10, y-45, 540+i*35+10, y-25, fill="#2ecc71", outline="#ffffff", width=2) for i in range(CAPACIDAD_ENJUAGUE)]
+        self.canvas.create_text(595, y - 60, text=f"🚿 Enjuague ({CAPACIDAD_ENJUAGUE} Op.)", fill="#1abc9c", font=("Segoe UI", 8, "bold"))
+        self.ops_llenado = [self.canvas.create_oval(750+i*50-10, y-45, 750+i*50+10, y-25, fill="#2ecc71", outline="#ffffff", width=2) for i in range(CAPACIDAD_LLENADO)]
+        self.canvas.create_text(775, y - 60, text=f"⚡ Llenado ({CAPACIDAD_LLENADO} Op.)", fill="#faa61a", font=("Segoe UI", 8, "bold"))
+        self.ops_sellado = [self.canvas.create_oval(900+i*50-10, y-45, 900+i*50+10, y-25, fill="#2ecc71", outline="#ffffff", width=2) for i in range(CAPACIDAD_SELLADO)]
+        self.canvas.create_text(925, y - 60, text=f"🏷️ Sellado ({CAPACIDAD_SELLADO} Op.)", fill="#e67e22", font=("Segoe UI", 8, "bold"))
 
         self.txt_q_manual = self.canvas.create_text(205, y - 55, text="Cola: 0", fill="#ae9e8d", font=("Segoe UI", 8, "bold"))
         self.txt_q_maquina = self.canvas.create_text(205, y + 55, text="Cola: 0", fill="#ae9e8d", font=("Segoe UI", 8, "bold"))
@@ -355,12 +378,12 @@ class EmbotelladoraAsIsGUI:
 
     def ejecutar_simpy_backend(self):
         env = simpy.Environment()
-        self.res_inspeccion = simpy.Resource(env, capacity=1)
-        self.res_lav_manual = simpy.Resource(env, capacity=4)    
-        self.res_lav_maquina = simpy.Resource(env, capacity=2)   
-        self.res_enjuague = simpy.Resource(env, capacity=4)      
-        self.res_llenado = simpy.Resource(env, capacity=2)       
-        self.res_sellado = simpy.Resource(env, capacity=2)       
+        self.res_inspeccion = simpy.Resource(env, capacity=CAPACIDAD_INSPECCION)
+        self.res_lav_manual = simpy.Resource(env, capacity=CAPACIDAD_LAVADO_MANUAL)
+        self.res_lav_maquina = simpy.Resource(env, capacity=CAPACIDAD_LAVADO_TAMBOR)
+        self.res_enjuague = simpy.Resource(env, capacity=CAPACIDAD_ENJUAGUE)
+        self.res_llenado = simpy.Resource(env, capacity=CAPACIDAD_LLENADO)
+        self.res_sellado = simpy.Resource(env, capacity=CAPACIDAD_SELLADO)
         
         env.process(self.generador_botellas(env))
         
@@ -399,7 +422,7 @@ class EmbotelladoraAsIsGUI:
     def generador_botellas(self, env):
         id_b = 0
         while True:
-            yield env.timeout(max(1, random.normalvariate(MEDIA_ENTRADA, 3)))
+            yield env.timeout(max(1, random.normalvariate(MEDIA_ENTRADA, DESVIACION_ENTRADA)))
             while self.simulacion_pausada: yield env.timeout(0.1)
             self.total_llegaron += 1
             id_b += 1
@@ -413,10 +436,10 @@ class EmbotelladoraAsIsGUI:
         
         with self.res_inspeccion.request() as req:
             yield req
-            self.despachar_movimiento(id_b, 45, y, 70, y, duracion_espera=8, estado="EN_PROCESO", y_proceso=y-15)
-            yield env.timeout(8)
+            self.despachar_movimiento(id_b, 45, y, 70, y, duracion_espera=TIEMPO_INSPECCION, estado="EN_PROCESO", y_proceso=y-15)
+            yield env.timeout(TIEMPO_INSPECCION)
         
-        if random.random() < 0.05:
+        if random.random() > PROBABILIDAD_BOTELLON_BUENO:
             self.botellas_defectuosas_inicio += 1
             self.despachar_movimiento(id_b, 70, y, 150, y)
             yield env.timeout(2)
@@ -426,18 +449,20 @@ class EmbotelladoraAsIsGUI:
         self.despachar_movimiento(id_b, 70, y, 220, y)
         yield env.timeout(4)  
 
-        if self.res_lav_manual.count < self.res_lav_manual.capacity:
+        usar_tambor = random.random() < PROBABILIDAD_LAVADO_TAMBOR
+        if not usar_tambor and self.res_lav_manual.count < self.res_lav_manual.capacity:
             self.despachar_movimiento(id_b, 220, y, 240, y-70, estado="CAMINANDO", canal_cola="MANUAL")
             yield env.timeout(3)
             self.actualizar_texto_cola_directo("MANUAL", len(self.res_lav_manual.queue) + 1)
             with self.res_lav_manual.request() as req:
                 yield req
+                self.contador_estaciones["MANUAL"] += 1
                 self.actualizar_texto_cola_directo("MANUAL", len(self.res_lav_manual.queue))
-                idx_op = next(i for i in range(4) if not self.slots_manual[i])
+                idx_op = next(i for i in range(CAPACIDAD_LAVADO_MANUAL) if not self.slots_manual[i])
                 self.slots_manual[idx_op] = True
                 x_op = 300 + (idx_op * 45)
-                self.despachar_movimiento(id_b, 240, y-70, x_op, y-70, duracion_espera=90, estado="EN_PROCESO", y_proceso=y-85)
-                yield env.timeout(90)
+                self.despachar_movimiento(id_b, 240, y-70, x_op, y-70, duracion_espera=TIEMPO_LAVADO_MANUAL, estado="EN_PROCESO", y_proceso=y-85)
+                yield env.timeout(TIEMPO_LAVADO_MANUAL)
                 self.slots_manual[idx_op] = False 
             
             self.despachar_movimiento(id_b, x_op, y-70, 460, y-70)
@@ -449,12 +474,13 @@ class EmbotelladoraAsIsGUI:
             self.actualizar_texto_cola_directo("TAMBOR", len(self.res_lav_maquina.queue) + 1)
             with self.res_lav_maquina.request() as req:
                 yield req
+                self.contador_estaciones["TAMBOR"] += 1
                 self.actualizar_texto_cola_directo("TAMBOR", len(self.res_lav_maquina.queue))
-                idx_op = next(i for i in range(2) if not self.slots_tambor[i])
+                idx_op = next(i for i in range(CAPACIDAD_LAVADO_TAMBOR) if not self.slots_tambor[i])
                 self.slots_tambor[idx_op] = True
                 x_op = 330 + (idx_op * 55)
-                self.despachar_movimiento(id_b, 240, y+70, x_op, y+70, duracion_espera=45, estado="EN_PROCESO", y_proceso=y+55)
-                yield env.timeout(45)
+                self.despachar_movimiento(id_b, 240, y+70, x_op, y+70, duracion_espera=TIEMPO_LAVADO_TAMBOR, estado="EN_PROCESO", y_proceso=y+55)
+                yield env.timeout(TIEMPO_LAVADO_TAMBOR)
                 self.slots_tambor[idx_op] = False
                 
             self.despachar_movimiento(id_b, x_op, y+70, 460, y+70)
@@ -468,12 +494,13 @@ class EmbotelladoraAsIsGUI:
         self.actualizar_texto_cola_directo("ENJUAGUE", len(self.res_enjuague.queue) + 1)
         with self.res_enjuague.request() as req:
             yield req
+            self.contador_estaciones["ENJUAGUE"] += 1
             self.actualizar_texto_cola_directo("ENJUAGUE", len(self.res_enjuague.queue))
-            idx_op = next(i for i in range(4) if not self.slots_enjuague[i])
+            idx_op = next(i for i in range(CAPACIDAD_ENJUAGUE) if not self.slots_enjuague[i])
             self.slots_enjuague[idx_op] = True
             x_op = 540 + (idx_op * 35)
-            self.despachar_movimiento(id_b, 485, y, x_op, y, duracion_espera=40, estado="EN_PROCESO", y_proceso=y-15)
-            yield env.timeout(40)
+            self.despachar_movimiento(id_b, 485, y, x_op, y, duracion_espera=TIEMPO_ENJUAGUE, estado="EN_PROCESO", y_proceso=y-15)
+            yield env.timeout(TIEMPO_ENJUAGUE)
             self.slots_enjuague[idx_op] = False
             
         self.despachar_movimiento(id_b, x_op, y, 690, y)
@@ -484,14 +511,15 @@ class EmbotelladoraAsIsGUI:
         self.actualizar_texto_cola_directo("LLENADO", len(self.res_llenado.queue) + 1)
         with self.res_llenado.request() as req:
             yield req
+            self.contador_estaciones["LLENADO"] += 1
             self.actualizar_texto_cola_directo("LLENADO", len(self.res_llenado.queue))
-            idx_op = next(i for i in range(2) if not self.slots_llenado[i])
+            idx_op = next(i for i in range(CAPACIDAD_LLENADO) if not self.slots_llenado[i])
             self.slots_llenado[idx_op] = True
             x_op = 750 + (idx_op * 50)
-            self.despachar_movimiento(id_b, 670, y, x_op, y, duracion_espera=35, estado="EN_PROCESO", y_proceso=y-15)
-            yield env.timeout(35)
+            self.despachar_movimiento(id_b, 670, y, x_op, y, duracion_espera=TIEMPO_LLENADO, estado="EN_PROCESO", y_proceso=y-15)
+            yield env.timeout(TIEMPO_LLENADO)
             self.slots_llenado[idx_op] = False
-            if random.random() < 0.002: self.mermas_agua += 1; return
+            if random.random() < 0.002: self.mermas_agua += LITROS_POR_BOTELLON; return
             
         self.despachar_movimiento(id_b, x_op, y, 850, y)
         yield env.timeout(4)
@@ -501,12 +529,13 @@ class EmbotelladoraAsIsGUI:
         self.actualizar_texto_cola_directo("SELLADO", len(self.res_sellado.queue) + 1)
         with self.res_sellado.request() as req:
             yield req
+            self.contador_estaciones["SELLADO"] += 1
             self.actualizar_texto_cola_directo("SELLADO", len(self.res_sellado.queue))
-            idx_op = next(i for i in range(2) if not self.slots_sellado[i])
+            idx_op = next(i for i in range(CAPACIDAD_SELLADO) if not self.slots_sellado[i])
             self.slots_sellado[idx_op] = True
             x_op = 900 + (idx_op * 50)
-            self.despachar_movimiento(id_b, 830, y, x_op, y, duracion_espera=15, estado="EN_PROCESO", y_proceso=y-15)
-            yield env.timeout(15)
+            self.despachar_movimiento(id_b, 830, y, x_op, y, duracion_espera=TIEMPO_SELLADO, estado="EN_PROCESO", y_proceso=y-15)
+            yield env.timeout(TIEMPO_SELLADO)
             self.slots_sellado[idx_op] = False
         
         self.despachar_movimiento(id_b, x_op, y, 1060, y)
@@ -552,14 +581,16 @@ class EmbotelladoraAsIsGUI:
                         self.historico_colas["ENJUAGUE"].append(q_ej)
                         self.historico_colas["LLENADO"].append(q_ll)
                         self.historico_colas["SELLADO"].append(q_sl)
+                        for estacion, total in self.contador_estaciones.items():
+                            self.historico_estaciones[estacion].append(total)
                         self.actualizar_graficos_matplotlib()
                     
                     self.canvas.itemconfig(self.op_inspeccion[0], fill="#00bfff" if (lleg-ex-df) > 0 else "#2ecc71")
-                    for i in range(4): self.canvas.itemconfig(self.ops_manual[i], fill="#00bfff" if i < c_mn else "#2ecc71")
-                    for i in range(2): self.canvas.itemconfig(self.ops_maquina[i], fill="#00bfff" if i < c_mq else "#2ecc71")
-                    for i in range(4): self.canvas.itemconfig(self.ops_enjuague[i], fill="#00bfff" if i < c_ej else "#2ecc71")
-                    for i in range(2): self.canvas.itemconfig(self.ops_llenado[i], fill="#00bfff" if i < c_ll else "#2ecc71")
-                    for i in range(2): self.canvas.itemconfig(self.ops_sellado[i], fill="#00bfff" if i < c_sl else "#2ecc71")
+                    for i in range(CAPACIDAD_LAVADO_MANUAL): self.canvas.itemconfig(self.ops_manual[i], fill="#00bfff" if i < c_mn else "#2ecc71")
+                    for i in range(CAPACIDAD_LAVADO_TAMBOR): self.canvas.itemconfig(self.ops_maquina[i], fill="#00bfff" if i < c_mq else "#2ecc71")
+                    for i in range(CAPACIDAD_ENJUAGUE): self.canvas.itemconfig(self.ops_enjuague[i], fill="#00bfff" if i < c_ej else "#2ecc71")
+                    for i in range(CAPACIDAD_LLENADO): self.canvas.itemconfig(self.ops_llenado[i], fill="#00bfff" if i < c_ll else "#2ecc71")
+                    for i in range(CAPACIDAD_SELLADO): self.canvas.itemconfig(self.ops_sellado[i], fill="#00bfff" if i < c_sl else "#2ecc71")
                 elif tipo == "FIN":
                     self.simulacion_activa = False
                     self.btn_run.config(state="disabled", bg="#4f545c", text="▶ JORNADA COMPLETA")
