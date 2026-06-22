@@ -16,7 +16,7 @@ TIEMPO_SIMULACION = 28800  # 8 horas de jornada en segundos: 8:00 a. m. - 4:00 p
 MEDIA_ENTRADA = 32  # A mayor media, entran menos botellones por jornada.
 DESVIACION_ENTRADA = 4
 PROBABILIDAD_BOTELLON_BUENO = 0.95
-PROBABILIDAD_LAVADO_TAMBOR = 0.35  # Mantiene visible el apoyo semiautomático del tambor en el AS IS.
+PROBABILIDAD_LAVADO_TAMBOR = 0.35  # Referencia histórica; el tambor solo se usa cuando el lavado manual está saturado.
 LITROS_POR_BOTELLON = 7
 
 CAPACIDAD_INSPECCION = 1
@@ -491,8 +491,8 @@ class EmbotelladoraAsIsGUI:
         self.despachar_movimiento(id_b, 70, y, 220, y)
         yield env.timeout(4)  
 
-        usar_tambor = random.random() < PROBABILIDAD_LAVADO_TAMBOR
-        if not usar_tambor and self.res_lav_manual.count < self.res_lav_manual.capacity:
+        lavado_manual_saturado = self.res_lav_manual.count >= self.res_lav_manual.capacity or len(self.res_lav_manual.queue) > 0
+        if not lavado_manual_saturado:
             self.despachar_movimiento(id_b, 220, y, 240, y-70, estado="CAMINANDO", canal_cola="MANUAL")
             yield env.timeout(3)
             self.actualizar_texto_cola_directo("MANUAL", len(self.res_lav_manual.queue) + 1)
