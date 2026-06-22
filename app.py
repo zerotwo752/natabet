@@ -13,24 +13,23 @@ from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 # --- CONFIGURACIÓN DE LA SIMULACIÓN AS IS ---
 SEMILLA = 42
 TIEMPO_SIMULACION = 28800  # 8 horas de jornada en segundos: 8:00 a. m. - 4:00 p. m.
-MEDIA_ENTRADA = 18  # AS IS semi automático: llega más demanda de la que el cuello manual puede absorber.
+MEDIA_ENTRADA = 32  # Entrada de botellones reutilizados (media de la distribución normal).
 DESVIACION_ENTRADA = 4
 PROBABILIDAD_BOTELLON_BUENO = 0.95
 PROBABILIDAD_BOTELLON_RETRASO = 0.04  # Botellas aprobadas visualmente, pero detectadas tarde como defectuosas.
-TIEMPO_RETRASO_DEFECTO = 75  # Tiempo perdido promedio por botella defectuosa detectada en proceso.
-LITROS_POR_BOTELLON = 6
+LITROS_POR_BOTELLON = 7
 
 CAPACIDAD_INSPECCION = 3
 CAPACIDAD_LAVADO_MANUAL = 4
-CAPACIDAD_ENJUAGUE = 4
+CAPACIDAD_ENJUAGUE = 6
 CAPACIDAD_LLENADO = 2
 CAPACIDAD_SELLADO = 2
 
 TIEMPO_INSPECCION = 8
-TIEMPO_LAVADO_MANUAL = 90
-TIEMPO_ENJUAGUE = 40
-TIEMPO_LLENADO = 35
-TIEMPO_SELLADO = 15
+TIEMPO_LAVADO_MANUAL = 60
+TIEMPO_ENJUAGUE = 30
+TIEMPO_LLENADO = 30
+TIEMPO_SELLADO = 20
 
 class EmbotelladoraAsIsGUI:
     def __init__(self, root):
@@ -63,7 +62,7 @@ class EmbotelladoraAsIsGUI:
             "GENERAL": {"eficiencia": tk.StringVar(value="0.0%"), "descarte": tk.StringVar(value="0.0%"), "tiempo_promedio": tk.StringVar(value="0.0 s")},
             "MANUAL": {"cola": tk.StringVar(value="0"), "uso": tk.StringVar(value="0/4 Op"), "tiempo_promedio": tk.StringVar(value="0.0 s")},
             "RETRASO": {"cola": tk.StringVar(value="0"), "uso": tk.StringVar(value="0"), "tiempo_promedio": tk.StringVar(value="0.0 s")},
-            "ENJUAGUE": {"cola": tk.StringVar(value="0"), "uso": tk.StringVar(value="0/4 Op"), "tiempo_promedio": tk.StringVar(value="0.0 s")},
+            "ENJUAGUE": {"cola": tk.StringVar(value="0"), "uso": tk.StringVar(value=f"0/{CAPACIDAD_ENJUAGUE} Op"), "tiempo_promedio": tk.StringVar(value="0.0 s")},
             "LLENADO": {"cola": tk.StringVar(value="0"), "uso": tk.StringVar(value="0/2 Op"), "tiempo_promedio": tk.StringVar(value="0.0 s")},
             "SELLADO": {"cola": tk.StringVar(value="0"), "uso": tk.StringVar(value="0/2 Op"), "tiempo_promedio": tk.StringVar(value="0.0 s")}
         }
@@ -352,8 +351,6 @@ class EmbotelladoraAsIsGUI:
 
         self.ops_manual = [self.canvas.create_oval(300+i*45-10, y-115, 300+i*45+10, y-95, fill="#2ecc71", outline="#ffffff", width=2) for i in range(CAPACIDAD_LAVADO_MANUAL)]
         self.canvas.create_text(370, y - 130, text=f"Lavado Manual ({CAPACIDAD_LAVADO_MANUAL} Op.)", fill="#959da5", font=("Segoe UI", 8, "bold"))
-        self.canvas.create_text(355, y + 55, text="AS IS: lavado manual\nsin tambor automático", fill="#99aab5", font=("Segoe UI", 8, "bold"))
-
         self.ops_enjuague = [self.canvas.create_oval(540+i*35-10, y-45, 540+i*35+10, y-25, fill="#2ecc71", outline="#ffffff", width=2) for i in range(CAPACIDAD_ENJUAGUE)]
         self.canvas.create_text(595, y - 60, text=f"🚿 Enjuague ({CAPACIDAD_ENJUAGUE} Op.)", fill="#1abc9c", font=("Segoe UI", 8, "bold"))
         self.ops_llenado = [self.canvas.create_oval(750+i*50-10, y-45, 750+i*50+10, y-25, fill="#2ecc71", outline="#ffffff", width=2) for i in range(CAPACIDAD_LLENADO)]
@@ -395,6 +392,16 @@ class EmbotelladoraAsIsGUI:
             self.simulacion_pausada = True
             self.btn_pause.config(state="disabled", bg="#4f545c", text="⏸ PAUSADO")
             self.btn_run.config(state="normal", bg="#2ecc71", text="▶ REANUDAR")
+
+
+    def seleccionar_punto_defecto_tardio(self):
+        """Define dónde se detecta una botella defectuosa que pasó la inspección visual."""
+        return random.choice(["MANUAL", "ENJUAGUE", "LLENADO"])
+
+    def registrar_defecto_tardio(self, inicio_flujo, litros_merma=0):
+        self.botellas_con_retraso += 1
+        self.tiempo_total_retrasos += max(0, self.env.now - inicio_flujo)
+        self.mermas_agua += litros_merma
 
     def registrar_tiempo_estacion(self, estacion, inicio):
         self.tiempo_total_estaciones[estacion] += max(0, self.env.now - inicio)
@@ -493,7 +500,13 @@ class EmbotelladoraAsIsGUI:
             self.despachar_movimiento(id_b, 70, y, 150, y)
             yield env.timeout(2)
             self.despachar_movimiento(id_b, 150, y, 150, y + 120)
-            return  
+            return
+
+        punto_defecto_tardio = (
+            self.seleccionar_punto_defecto_tardio()
+            if random.random() < PROBABILIDAD_BOTELLON_RETRASO
+            else None
+        )
 
         self.despachar_movimiento(id_b, 70, y, 220, y)
         yield env.timeout(4)  
@@ -513,6 +526,10 @@ class EmbotelladoraAsIsGUI:
             yield env.timeout(TIEMPO_LAVADO_MANUAL)
             self.slots_manual[idx_op] = False
             self.registrar_tiempo_estacion("MANUAL", inicio_estacion)
+            if punto_defecto_tardio == "MANUAL":
+                self.registrar_defecto_tardio(inicio_flujo)
+                self.despachar_movimiento(id_b, x_op, y-70, 150, y + 120)
+                return
         
         self.despachar_movimiento(id_b, x_op, y-70, 460, y-70)
         yield env.timeout(4)
@@ -535,17 +552,13 @@ class EmbotelladoraAsIsGUI:
             yield env.timeout(TIEMPO_ENJUAGUE)
             self.slots_enjuague[idx_op] = False
             self.registrar_tiempo_estacion("ENJUAGUE", inicio_estacion)
+            if punto_defecto_tardio == "ENJUAGUE":
+                self.registrar_defecto_tardio(inicio_flujo)
+                self.despachar_movimiento(id_b, x_op, y, 150, y + 120)
+                return
             
         self.despachar_movimiento(id_b, x_op, y, 690, y)
         yield env.timeout(4)
-
-        if random.random() < PROBABILIDAD_BOTELLON_RETRASO:
-            self.botellas_con_retraso += 1
-            self.tiempo_total_retrasos += TIEMPO_RETRASO_DEFECTO
-            self.despachar_movimiento(id_b, 690, y, 690, y + 55, duracion_espera=TIEMPO_RETRASO_DEFECTO, estado="EN_PROCESO", y_proceso=y + 45)
-            yield env.timeout(TIEMPO_RETRASO_DEFECTO)
-            self.despachar_movimiento(id_b, 690, y + 55, 150, y + 120)
-            return
 
         self.despachar_movimiento(id_b, 690, y, 670, y, estado="CAMINANDO", canal_cola="LLENADO")
         yield env.timeout(3)
@@ -559,10 +572,19 @@ class EmbotelladoraAsIsGUI:
             self.slots_llenado[idx_op] = True
             x_op = 750 + (idx_op * 50)
             self.despachar_movimiento(id_b, 670, y, x_op, y, duracion_espera=TIEMPO_LLENADO, estado="EN_PROCESO", y_proceso=y-15)
+            if punto_defecto_tardio == "LLENADO":
+                fraccion_llenada = random.uniform(0.10, 0.90)
+                tiempo_hasta_fuga = TIEMPO_LLENADO * fraccion_llenada
+                yield env.timeout(tiempo_hasta_fuga)
+                self.slots_llenado[idx_op] = False
+                self.registrar_tiempo_estacion("LLENADO", inicio_estacion)
+                litros_perdidos = round(LITROS_POR_BOTELLON * fraccion_llenada, 2)
+                self.registrar_defecto_tardio(inicio_flujo, litros_perdidos)
+                self.despachar_movimiento(id_b, x_op, y, 150, y + 120)
+                return
             yield env.timeout(TIEMPO_LLENADO)
             self.slots_llenado[idx_op] = False
             self.registrar_tiempo_estacion("LLENADO", inicio_estacion)
-            if random.random() < 0.002: self.mermas_agua += LITROS_POR_BOTELLON; return
             
         self.despachar_movimiento(id_b, x_op, y, 850, y)
         yield env.timeout(4)
