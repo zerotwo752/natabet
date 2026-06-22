@@ -13,26 +13,25 @@ from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 # --- CONFIGURACIÓN DE LA SIMULACIÓN AS IS ---
 SEMILLA = 42
 TIEMPO_SIMULACION = 28800  # 8 horas de jornada en segundos: 8:00 a. m. - 4:00 p. m.
-MEDIA_ENTRADA = 22  # Entrada AS IS: media de 22 segundos entre botellones reutilizados.
+MEDIA_ENTRADA = 35  # A mayor media, entran menos botellones por jornada.
 DESVIACION_ENTRADA = 4
 PROBABILIDAD_BOTELLON_BUENO = 0.95
 PROBABILIDAD_LAVADO_TAMBOR = 0.35  # Referencia histórica; el tambor solo se usa cuando el lavado manual está saturado.
 LITROS_POR_BOTELLON = 7
-MERMA_GOTEO_LITROS_POR_BOTELLON = 0.005  # AS IS: gotas derramadas al llenar (~5 ml), no un botellón completo.
 
 CAPACIDAD_INSPECCION = 1
 CAPACIDAD_LAVADO_MANUAL = 4
 CAPACIDAD_LAVADO_TAMBOR = 2
-CAPACIDAD_ENJUAGUE = 6
+CAPACIDAD_ENJUAGUE = 4
 CAPACIDAD_LLENADO = 2
 CAPACIDAD_SELLADO = 2
 
 TIEMPO_INSPECCION = 8
-TIEMPO_LAVADO_MANUAL = 60
-TIEMPO_LAVADO_TAMBOR = 25
-TIEMPO_ENJUAGUE = 30
-TIEMPO_LLENADO = 30
-TIEMPO_SELLADO = 20
+TIEMPO_LAVADO_MANUAL = 90
+TIEMPO_LAVADO_TAMBOR = 45
+TIEMPO_ENJUAGUE = 40
+TIEMPO_LLENADO = 35
+TIEMPO_SELLADO = 15
 
 class EmbotelladoraAsIsGUI:
     def __init__(self, root):
@@ -64,7 +63,7 @@ class EmbotelladoraAsIsGUI:
             "GENERAL": {"eficiencia": tk.StringVar(value="0.0%"), "descarte": tk.StringVar(value="0.0%"), "tiempo_promedio": tk.StringVar(value="0.0 s")},
             "MANUAL": {"cola": tk.StringVar(value="0"), "uso": tk.StringVar(value="0/4 Op"), "tiempo_promedio": tk.StringVar(value="0.0 s")},
             "TAMBOR": {"cola": tk.StringVar(value="0"), "uso": tk.StringVar(value="0/2 Op"), "tiempo_promedio": tk.StringVar(value="0.0 s")},
-            "ENJUAGUE": {"cola": tk.StringVar(value="0"), "uso": tk.StringVar(value=f"0/{CAPACIDAD_ENJUAGUE} Op"), "tiempo_promedio": tk.StringVar(value="0.0 s")},
+            "ENJUAGUE": {"cola": tk.StringVar(value="0"), "uso": tk.StringVar(value="0/4 Op"), "tiempo_promedio": tk.StringVar(value="0.0 s")},
             "LLENADO": {"cola": tk.StringVar(value="0"), "uso": tk.StringVar(value="0/2 Op"), "tiempo_promedio": tk.StringVar(value="0.0 s")},
             "SELLADO": {"cola": tk.StringVar(value="0"), "uso": tk.StringVar(value="0/2 Op"), "tiempo_promedio": tk.StringVar(value="0.0 s")}
         }
@@ -570,7 +569,7 @@ class EmbotelladoraAsIsGUI:
             yield env.timeout(TIEMPO_LLENADO)
             self.slots_llenado[idx_op] = False
             self.registrar_tiempo_estacion("LLENADO", inicio_estacion)
-            self.mermas_agua += MERMA_GOTEO_LITROS_POR_BOTELLON
+            if random.random() < 0.002: self.mermas_agua += LITROS_POR_BOTELLON; return
             
         self.despachar_movimiento(id_b, x_op, y, 850, y)
         yield env.timeout(4)
@@ -614,7 +613,7 @@ class EmbotelladoraAsIsGUI:
                     self.var_llegaron.set(str(lleg))
                     self.var_exito.set(str(ex))
                     self.var_defectos.set(str(df))
-                    self.var_mermas.set(f"{mr:.3f}")
+                    self.var_mermas.set(str(mr))
                     
                     if lleg > 0:
                         self.resumen_metrics["GENERAL"]["eficiencia"].set(f"{(ex / lleg) * 100:.1f}%")
