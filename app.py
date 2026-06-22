@@ -19,6 +19,10 @@ PROBABILIDAD_BOTELLON_BUENO = 0.95
 PROBABILIDAD_BOTELLON_RETRASO = 0.04  # Botellas aprobadas visualmente, pero detectadas tarde como defectuosas.
 ETAPAS_DETECCION_TARDIA = ("MANUAL", "ENJUAGUE", "LLENADO")
 LITROS_POR_BOTELLON = 7
+MERMA_GOTEO_MIN_LITROS = 0.02  # Gotas al retirar la manguera después de llenar un botellón.
+MERMA_GOTEO_MAX_LITROS = 0.05
+MERMA_DEFECTO_LLENADO_MIN_LITROS = 1.0
+MERMA_DEFECTO_LLENADO_MAX_LITROS = 3.0
 
 CAPACIDAD_INSPECCION = 3
 CAPACIDAD_LAVADO_MANUAL = 4
@@ -55,7 +59,7 @@ class EmbotelladoraAsIsGUI:
         self.var_llegaron = tk.StringVar(value="0")
         self.var_exito = tk.StringVar(value="0")         
         self.var_defectos = tk.StringVar(value="0")      
-        self.var_mermas = tk.StringVar(value="0")        
+        self.var_mermas = tk.StringVar(value="0.00")
         self.var_retrasos = tk.StringVar(value="0")
         self.var_modo_vel = tk.StringVar(value="Velocidad: Normal (1s/s)")
         
@@ -71,7 +75,7 @@ class EmbotelladoraAsIsGUI:
         self.total_llegaron = 0
         self.botellas_defectuosas_inicio = 0
         self.botellas_exito = 0
-        self.mermas_agua = 0
+        self.mermas_agua = 0.0
         self.botellas_con_retraso = 0
         self.tiempo_total_retrasos = 0.0
         self.tiempo_total_botellas_exitosas = 0.0
@@ -162,7 +166,7 @@ class EmbotelladoraAsIsGUI:
         self.crear_tarjeta_stat(frame_top, "✅ BOTELLONES PROCESADOS", self.var_exito, "#57f287", 2)
         self.crear_tarjeta_stat(frame_top, "🗑️ DESCARTADOS INICIALES", self.var_defectos, "#ed4245", 3)
         self.crear_tarjeta_stat(frame_top, "💧 MERMA DE AGUA (LITROS)", self.var_mermas, "#fee75c", 4)
-        self.crear_tarjeta_stat(frame_top, "⚠️ BOTELLAS CON RETRASO", self.var_retrasos, "#faa61a", 5)
+        self.crear_tarjeta_stat(frame_top, "⚠️ BOTELLONES CON RETRASO", self.var_retrasos, "#faa61a", 5)
 
         self.canvas = tk.Canvas(self.tab_simulacion, bg="#1a1d20", highlightthickness=0)
         self.canvas.grid(row=1, column=0, sticky="nsew", padx=10, pady=5)
@@ -565,8 +569,8 @@ class EmbotelladoraAsIsGUI:
             self.slots_llenado[idx_op] = True
             x_op = 750 + (idx_op * 50)
             if etapa_defecto_tardio == "LLENADO":
-                tiempo_hasta_fuga = random.uniform(1, TIEMPO_LLENADO)
-                litros_perdidos = max(1, min(LITROS_POR_BOTELLON, round((tiempo_hasta_fuga / TIEMPO_LLENADO) * LITROS_POR_BOTELLON)))
+                tiempo_hasta_fuga = random.uniform(1, min(12, TIEMPO_LLENADO))
+                litros_perdidos = random.uniform(MERMA_DEFECTO_LLENADO_MIN_LITROS, MERMA_DEFECTO_LLENADO_MAX_LITROS)
                 self.despachar_movimiento(id_b, 670, y, x_op, y, duracion_espera=tiempo_hasta_fuga, estado="EN_PROCESO", y_proceso=y-15)
                 yield env.timeout(tiempo_hasta_fuga)
                 self.slots_llenado[idx_op] = False
@@ -600,6 +604,7 @@ class EmbotelladoraAsIsGUI:
         self.despachar_movimiento(id_b, x_op, y, 1060, y)
         yield env.timeout(5)
         self.botellas_exito += 1
+        self.mermas_agua += random.uniform(MERMA_GOTEO_MIN_LITROS, MERMA_GOTEO_MAX_LITROS)
         self.tiempo_total_botellas_exitosas += env.now - inicio_flujo
 
     def procesar_logica_visual(self):
@@ -620,7 +625,7 @@ class EmbotelladoraAsIsGUI:
                     self.var_llegaron.set(str(lleg))
                     self.var_exito.set(str(ex))
                     self.var_defectos.set(str(df))
-                    self.var_mermas.set(str(mr))
+                    self.var_mermas.set(f"{mr:.2f}")
                     self.var_retrasos.set(str(retraso))
                     
                     if lleg > 0:
