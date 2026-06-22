@@ -13,11 +13,12 @@ from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 # --- CONFIGURACIÓN DE LA SIMULACIÓN AS IS ---
 SEMILLA = 42
 TIEMPO_SIMULACION = 28800  # 8 horas de jornada en segundos: 8:00 a. m. - 4:00 p. m.
-MEDIA_ENTRADA = 32  # A mayor media, entran menos botellones por jornada.
+MEDIA_ENTRADA = 22  # Entrada AS IS: media de 22 segundos entre botellones reutilizados.
 DESVIACION_ENTRADA = 4
 PROBABILIDAD_BOTELLON_BUENO = 0.95
 PROBABILIDAD_LAVADO_TAMBOR = 0.35  # Referencia histórica; el tambor solo se usa cuando el lavado manual está saturado.
 LITROS_POR_BOTELLON = 7
+MERMA_GOTEO_LITROS_POR_BOTELLON = 0.008  # AS IS: goteo manual (~8 ml) para que la merma sea mayor que el TO BE.
 
 CAPACIDAD_INSPECCION = 1
 CAPACIDAD_LAVADO_MANUAL = 4
@@ -27,11 +28,12 @@ CAPACIDAD_LLENADO = 2
 CAPACIDAD_SELLADO = 2
 
 TIEMPO_INSPECCION = 8
-TIEMPO_LAVADO_MANUAL = 90
-TIEMPO_LAVADO_TAMBOR = 45
-TIEMPO_ENJUAGUE = 40
-TIEMPO_LLENADO = 35
-TIEMPO_SELLADO = 15
+TIEMPO_LAVADO_MANUAL = 60
+TIEMPO_LAVADO_TAMBOR = 25
+TIEMPO_ENJUAGUE = 30
+TIEMPO_LLENADO = 30
+TIEMPO_SELLADO = 20
+PROBABILIDAD_DEFECTO_CON_RETRASO = 0.07  # Defectos detectados tarde tras consumir lavado/enjuague.
 
 class EmbotelladoraAsIsGUI:
     def __init__(self, root):
@@ -56,20 +58,23 @@ class EmbotelladoraAsIsGUI:
         self.var_llegaron = tk.StringVar(value="0")
         self.var_exito = tk.StringVar(value="0")         
         self.var_defectos = tk.StringVar(value="0")      
+        self.var_retrasos = tk.StringVar(value="0")
         self.var_mermas = tk.StringVar(value="0")        
         self.var_modo_vel = tk.StringVar(value="Velocidad: Normal (1s/s)")
         
         self.resumen_metrics = {
-            "GENERAL": {"eficiencia": tk.StringVar(value="0.0%"), "descarte": tk.StringVar(value="0.0%"), "tiempo_promedio": tk.StringVar(value="0.0 s")},
+            "GENERAL": {"eficiencia": tk.StringVar(value="0.0%"), "descarte": tk.StringVar(value="0.0%"), "tiempo_promedio": tk.StringVar(value="0.0 s"), "tiempo_retraso": tk.StringVar(value="0.0 s")},
             "MANUAL": {"cola": tk.StringVar(value="0"), "uso": tk.StringVar(value="0/4 Op"), "tiempo_promedio": tk.StringVar(value="0.0 s")},
             "TAMBOR": {"cola": tk.StringVar(value="0"), "uso": tk.StringVar(value="0/2 Op"), "tiempo_promedio": tk.StringVar(value="0.0 s")},
-            "ENJUAGUE": {"cola": tk.StringVar(value="0"), "uso": tk.StringVar(value="0/4 Op"), "tiempo_promedio": tk.StringVar(value="0.0 s")},
+            "ENJUAGUE": {"cola": tk.StringVar(value="0"), "uso": tk.StringVar(value=f"0/{CAPACIDAD_ENJUAGUE} Op"), "tiempo_promedio": tk.StringVar(value="0.0 s")},
             "LLENADO": {"cola": tk.StringVar(value="0"), "uso": tk.StringVar(value="0/2 Op"), "tiempo_promedio": tk.StringVar(value="0.0 s")},
             "SELLADO": {"cola": tk.StringVar(value="0"), "uso": tk.StringVar(value="0/2 Op"), "tiempo_promedio": tk.StringVar(value="0.0 s")}
         }
         
         self.total_llegaron = 0
         self.botellas_defectuosas_inicio = 0
+        self.botellas_con_retraso = 0
+        self.tiempo_total_retraso_defectos = 0.0
         self.botellas_exito = 0
         self.mermas_agua = 0
         self.tiempo_total_botellas_exitosas = 0.0
@@ -159,7 +164,8 @@ class EmbotelladoraAsIsGUI:
         self.crear_tarjeta_stat(frame_top, "📥 INGRESADOS A PLANTA", self.var_llegaron, "#ffffff", 1)
         self.crear_tarjeta_stat(frame_top, "✅ BOTELLONES PROCESADOS", self.var_exito, "#57f287", 2)
         self.crear_tarjeta_stat(frame_top, "🗑️ DESCARTADOS INICIALES", self.var_defectos, "#ed4245", 3)
-        self.crear_tarjeta_stat(frame_top, "💧 MERMA DE AGUA (LITROS)", self.var_mermas, "#fee75c", 4)
+        self.crear_tarjeta_stat(frame_top, "⏳ DEFECTOS CON RETRASO", self.var_retrasos, "#ff9f43", 4)
+        self.crear_tarjeta_stat(frame_top, "💧 MERMA DE AGUA (LITROS)", self.var_mermas, "#fee75c", 5)
 
         self.canvas = tk.Canvas(self.tab_simulacion, bg="#1a1d20", highlightthickness=0)
         self.canvas.grid(row=1, column=0, sticky="nsew", padx=10, pady=5)
@@ -222,10 +228,11 @@ class EmbotelladoraAsIsGUI:
 
         self.frame_tiempos_promedio = tk.Frame(self.frame_detalle_grafico, bg="#111416")
         self.frame_tiempos_promedio.grid(row=2, column=0, sticky="ew", pady=(0, 10))
-        self.frame_tiempos_promedio.grid_columnconfigure((0, 1, 2, 3, 4, 5), weight=1)
+        self.frame_tiempos_promedio.grid_columnconfigure((0, 1, 2, 3, 4, 5, 6), weight=1)
         self.lbls_tiempos_promedio = {}
         estaciones_tiempo = [
             ("GENERAL", "📈 Total", "#57f287"),
+            ("RETRASO", "⏳ Perdido", "#ff9f43"),
             ("MANUAL", "🧼 Manual", "#3498db"),
             ("TAMBOR", "🤖 Tambor", "#1abc9c"),
             ("ENJUAGUE", "🚿 Enjuague", "#fee75c"),
@@ -236,9 +243,11 @@ class EmbotelladoraAsIsGUI:
             frame_tiempo = tk.Frame(self.frame_tiempos_promedio, bg="#1a1d20", padx=8, pady=6)
             frame_tiempo.grid(row=0, column=col, sticky="ew", padx=3)
             tk.Label(frame_tiempo, text=titulo, font=("Segoe UI", 8, "bold"), fg=color, bg="#1a1d20").pack(anchor="w")
-            lbl_valor = tk.Label(frame_tiempo, textvariable=self.resumen_metrics[clave]["tiempo_promedio"], font=("Consolas", 12, "bold"), fg="#ffffff", bg="#1a1d20")
+            metric_var = self.resumen_metrics["GENERAL"]["tiempo_retraso"] if clave == "RETRASO" else self.resumen_metrics[clave]["tiempo_promedio"]
+            lbl_valor = tk.Label(frame_tiempo, textvariable=metric_var, font=("Consolas", 12, "bold"), fg="#ffffff", bg="#1a1d20")
             lbl_valor.pack(anchor="w")
             self.lbls_tiempos_promedio[clave] = lbl_valor
+
         
         self.fig, self.ax = plt.subplots(figsize=(7, 4))
         self.fig.patch.set_facecolor('#1a1d20')
@@ -263,9 +272,10 @@ class EmbotelladoraAsIsGUI:
             "TAMBOR": ("ESTACIÓN AUTOMATIZADA: TAMBOR ROTATIVO", "#1abc9c"),
             "ENJUAGUE": ("ESTACIÓN DE SANEAMIENTO: ENJUAGUE LÍQUIDO", "#fee75c"),
             "LLENADO": ("PUNTO CRÍTICO: LLENADORA DE BOTELLONES", "#faa61a"),
-            "SELLADO": ("FASE FINAL: SELLADORA Y TAPONADORA", "#e67e22")
+            "SELLADO": ("FASE FINAL: SELLADORA Y TAPONADORA", "#e67e22"),
+            "RETRASO": ("INDICADOR: DEFECTOS QUE CONSUMIERON TIEMPO", "#ff9f43")
         }
-        text, color = titulos[clave]
+        text, color = titulos.get(clave, titulos["GENERAL"])
         self.lbl_detalle_titulo.config(text=text, fg=color)
         self.actualizar_graficos_matplotlib()
 
@@ -414,6 +424,12 @@ class EmbotelladoraAsIsGUI:
         promedio = self.tiempo_total_botellas_exitosas / self.botellas_exito
         return f"{promedio:.1f} s"
 
+    def formatear_promedio_retraso_defectos(self):
+        if self.botellas_con_retraso == 0:
+            return "0.0 s"
+        promedio = self.tiempo_total_retraso_defectos / self.botellas_con_retraso
+        return f"{promedio:.1f} s"
+
     def ejecutar_simpy_backend(self):
         env = simpy.Environment()
         self.env = env
@@ -443,14 +459,14 @@ class EmbotelladoraAsIsGUI:
             try:
                 self.cola_mensajes_gui.put_nowait(("STATS", (
                     f"{h:02d}:{m:02d}:{s:02d}", self.total_llegaron, self.botellas_exito,
-                    self.botellas_defectuosas_inicio, self.mermas_agua,
+                    self.botellas_defectuosas_inicio, self.botellas_con_retraso, self.mermas_agua,
                     len(self.res_lav_manual.queue), len(self.res_lav_maquina.queue),
                     len(self.res_enjuague.queue), len(self.res_llenado.queue), len(self.res_sellado.queue),
                     self.res_lav_manual.count, self.res_lav_maquina.count,
                     self.res_enjuague.count, self.res_llenado.count, self.res_sellado.count,
                     self.formatear_promedio_total(), self.formatear_promedio_estacion("MANUAL"), self.formatear_promedio_estacion("TAMBOR"),
                     self.formatear_promedio_estacion("ENJUAGUE"), self.formatear_promedio_estacion("LLENADO"),
-                    self.formatear_promedio_estacion("SELLADO"), segundos_totales
+                    self.formatear_promedio_estacion("SELLADO"), self.formatear_promedio_retraso_defectos(), segundos_totales
                 )))
             except queue.Full:
                 pass
@@ -551,6 +567,14 @@ class EmbotelladoraAsIsGUI:
             self.slots_enjuague[idx_op] = False
             self.registrar_tiempo_estacion("ENJUAGUE", inicio_estacion)
             
+        if random.random() < PROBABILIDAD_DEFECTO_CON_RETRASO:
+            self.botellas_con_retraso += 1
+            self.tiempo_total_retraso_defectos += env.now - inicio_flujo
+            self.despachar_movimiento(id_b, x_op, y, 150, y)
+            yield env.timeout(5)
+            self.despachar_movimiento(id_b, 150, y, 150, y + 120)
+            return
+
         self.despachar_movimiento(id_b, x_op, y, 690, y)
         yield env.timeout(4)
 
@@ -569,7 +593,7 @@ class EmbotelladoraAsIsGUI:
             yield env.timeout(TIEMPO_LLENADO)
             self.slots_llenado[idx_op] = False
             self.registrar_tiempo_estacion("LLENADO", inicio_estacion)
-            if random.random() < 0.002: self.mermas_agua += LITROS_POR_BOTELLON; return
+            self.mermas_agua += MERMA_GOTEO_LITROS_POR_BOTELLON
             
         self.despachar_movimiento(id_b, x_op, y, 850, y)
         yield env.timeout(4)
@@ -608,16 +632,17 @@ class EmbotelladoraAsIsGUI:
                     txt_map = {"MANUAL": self.txt_q_manual, "TAMBOR": self.txt_q_maquina, "ENJUAGUE": self.txt_q_enjuague, "LLENADO": self.txt_q_llenado, "SELLADO": self.txt_q_sellado}
                     self.canvas.itemconfig(txt_map[canal], text=f"Cola: {val}", fill="#ed4245" if val > 0 else "#ae9e8d")
                 elif tipo == "STATS":
-                    t, lleg, ex, df, mr, q_mn, q_mq, q_ej, q_ll, q_sl, c_mn, c_mq, c_ej, c_ll, c_sl, avg_total, avg_mn, avg_mq, avg_ej, avg_ll, avg_sl, segs = datos
+                    t, lleg, ex, df, dr, mr, q_mn, q_mq, q_ej, q_ll, q_sl, c_mn, c_mq, c_ej, c_ll, c_sl, avg_total, avg_mn, avg_mq, avg_ej, avg_ll, avg_sl, avg_retraso, segs = datos
                     self.var_tiempo.set(t)
                     self.var_llegaron.set(str(lleg))
                     self.var_exito.set(str(ex))
                     self.var_defectos.set(str(df))
-                    self.var_mermas.set(str(mr))
+                    self.var_retrasos.set(str(dr))
+                    self.var_mermas.set(f"{mr:.3f}")
                     
                     if lleg > 0:
                         self.resumen_metrics["GENERAL"]["eficiencia"].set(f"{(ex / lleg) * 100:.1f}%")
-                        self.resumen_metrics["GENERAL"]["descarte"].set(f"{(df / lleg) * 100:.1f}%")
+                        self.resumen_metrics["GENERAL"]["descarte"].set(f"{((df + dr) / lleg) * 100:.1f}%")
                     self.resumen_metrics["MANUAL"]["cola"].set(str(q_mn))
                     self.resumen_metrics["TAMBOR"]["cola"].set(str(q_mq))
                     self.resumen_metrics["ENJUAGUE"]["cola"].set(str(q_ej))
@@ -629,6 +654,7 @@ class EmbotelladoraAsIsGUI:
                     self.resumen_metrics["ENJUAGUE"]["tiempo_promedio"].set(avg_ej)
                     self.resumen_metrics["LLENADO"]["tiempo_promedio"].set(avg_ll)
                     self.resumen_metrics["SELLADO"]["tiempo_promedio"].set(avg_sl)
+                    self.resumen_metrics["GENERAL"]["tiempo_retraso"].set(avg_retraso)
                     
                     self.contador_muestreo += 1
                     frecuencia = 50 if self.get_factor_velocidad() >= 30 else 5
@@ -644,7 +670,7 @@ class EmbotelladoraAsIsGUI:
                             self.historico_estaciones[estacion].append(total)
                         self.actualizar_graficos_matplotlib()
                     
-                    self.canvas.itemconfig(self.op_inspeccion[0], fill="#00bfff" if (lleg-ex-df) > 0 else "#2ecc71")
+                    self.canvas.itemconfig(self.op_inspeccion[0], fill="#00bfff" if (lleg-ex-df-dr) > 0 else "#2ecc71")
                     for i in range(CAPACIDAD_LAVADO_MANUAL): self.canvas.itemconfig(self.ops_manual[i], fill="#00bfff" if i < c_mn else "#2ecc71")
                     for i in range(CAPACIDAD_LAVADO_TAMBOR): self.canvas.itemconfig(self.ops_maquina[i], fill="#00bfff" if i < c_mq else "#2ecc71")
                     for i in range(CAPACIDAD_ENJUAGUE): self.canvas.itemconfig(self.ops_enjuague[i], fill="#00bfff" if i < c_ej else "#2ecc71")
