@@ -76,6 +76,8 @@ class EmbotelladoraAsIsGUI:
         self.historico_tiempo = []
         self.historico_procesados = []
         self.historico_colas = {"MANUAL": [], "TAMBOR": [], "ENJUAGUE": [], "LLENADO": [], "SELLADO": []}
+        self.contador_estaciones = {"MANUAL": 0, "TAMBOR": 0, "ENJUAGUE": 0, "LLENADO": 0, "SELLADO": 0}
+        self.historico_estaciones = {"MANUAL": [], "TAMBOR": [], "ENJUAGUE": [], "LLENADO": [], "SELLADO": []}
         self.contador_muestreo = 0
         
         self.simulacion_activa = False
@@ -272,11 +274,14 @@ class EmbotelladoraAsIsGUI:
             self.ax.set_ylabel("Unidades Finalizadas", color='#99aab5', fontsize=8)
         else:
             cola_data = self.historico_colas[self.categoria_actual]
+            flujo_data = self.historico_estaciones[self.categoria_actual]
             colores = {"MANUAL": "#3498db", "TAMBOR": "#1abc9c", "ENJUAGUE": "#fee75c", "LLENADO": "#faa61a", "SELLADO": "#e67e22"}
-            self.ax.plot(x_data, cola_data, color=colores[self.categoria_actual], linewidth=2, label=f"Fila de espera {self.categoria_actual}")
-            self.ax.set_title(f"Historial de Carga y Cuellos de Botella: {self.categoria_actual}", color='white', fontsize=10, fontweight='bold')
+            color = colores[self.categoria_actual]
+            self.ax.plot(x_data, flujo_data, color=color, linewidth=2, label=f"Botellones que pasaron por {self.categoria_actual}")
+            self.ax.plot(x_data, cola_data, color="#ed4245", linewidth=1.5, linestyle="--", label=f"Fila de espera {self.categoria_actual}")
+            self.ax.set_title(f"Flujo acumulado y cola: {self.categoria_actual}", color='white', fontsize=10, fontweight='bold')
             self.ax.set_xlabel("Índice de Muestreos Operativos", color='#99aab5', fontsize=8)
-            self.ax.set_ylabel("Cantidad de Envases Retenidos", color='#99aab5', fontsize=8)
+            self.ax.set_ylabel("Cantidad de Botellones", color='#99aab5', fontsize=8)
             
         self.ax.legend(facecolor='#1a1d20', edgecolor='none', labelcolor='white', fontsize=8, loc='upper left')
         self.fig.tight_layout()
@@ -451,6 +456,7 @@ class EmbotelladoraAsIsGUI:
             self.actualizar_texto_cola_directo("MANUAL", len(self.res_lav_manual.queue) + 1)
             with self.res_lav_manual.request() as req:
                 yield req
+                self.contador_estaciones["MANUAL"] += 1
                 self.actualizar_texto_cola_directo("MANUAL", len(self.res_lav_manual.queue))
                 idx_op = next(i for i in range(CAPACIDAD_LAVADO_MANUAL) if not self.slots_manual[i])
                 self.slots_manual[idx_op] = True
@@ -468,6 +474,7 @@ class EmbotelladoraAsIsGUI:
             self.actualizar_texto_cola_directo("TAMBOR", len(self.res_lav_maquina.queue) + 1)
             with self.res_lav_maquina.request() as req:
                 yield req
+                self.contador_estaciones["TAMBOR"] += 1
                 self.actualizar_texto_cola_directo("TAMBOR", len(self.res_lav_maquina.queue))
                 idx_op = next(i for i in range(CAPACIDAD_LAVADO_TAMBOR) if not self.slots_tambor[i])
                 self.slots_tambor[idx_op] = True
@@ -487,6 +494,7 @@ class EmbotelladoraAsIsGUI:
         self.actualizar_texto_cola_directo("ENJUAGUE", len(self.res_enjuague.queue) + 1)
         with self.res_enjuague.request() as req:
             yield req
+            self.contador_estaciones["ENJUAGUE"] += 1
             self.actualizar_texto_cola_directo("ENJUAGUE", len(self.res_enjuague.queue))
             idx_op = next(i for i in range(CAPACIDAD_ENJUAGUE) if not self.slots_enjuague[i])
             self.slots_enjuague[idx_op] = True
@@ -503,6 +511,7 @@ class EmbotelladoraAsIsGUI:
         self.actualizar_texto_cola_directo("LLENADO", len(self.res_llenado.queue) + 1)
         with self.res_llenado.request() as req:
             yield req
+            self.contador_estaciones["LLENADO"] += 1
             self.actualizar_texto_cola_directo("LLENADO", len(self.res_llenado.queue))
             idx_op = next(i for i in range(CAPACIDAD_LLENADO) if not self.slots_llenado[i])
             self.slots_llenado[idx_op] = True
@@ -520,6 +529,7 @@ class EmbotelladoraAsIsGUI:
         self.actualizar_texto_cola_directo("SELLADO", len(self.res_sellado.queue) + 1)
         with self.res_sellado.request() as req:
             yield req
+            self.contador_estaciones["SELLADO"] += 1
             self.actualizar_texto_cola_directo("SELLADO", len(self.res_sellado.queue))
             idx_op = next(i for i in range(CAPACIDAD_SELLADO) if not self.slots_sellado[i])
             self.slots_sellado[idx_op] = True
@@ -571,14 +581,16 @@ class EmbotelladoraAsIsGUI:
                         self.historico_colas["ENJUAGUE"].append(q_ej)
                         self.historico_colas["LLENADO"].append(q_ll)
                         self.historico_colas["SELLADO"].append(q_sl)
+                        for estacion, total in self.contador_estaciones.items():
+                            self.historico_estaciones[estacion].append(total)
                         self.actualizar_graficos_matplotlib()
                     
                     self.canvas.itemconfig(self.op_inspeccion[0], fill="#00bfff" if (lleg-ex-df) > 0 else "#2ecc71")
-                    for i in range(4): self.canvas.itemconfig(self.ops_manual[i], fill="#00bfff" if i < c_mn else "#2ecc71")
-                    for i in range(2): self.canvas.itemconfig(self.ops_maquina[i], fill="#00bfff" if i < c_mq else "#2ecc71")
-                    for i in range(4): self.canvas.itemconfig(self.ops_enjuague[i], fill="#00bfff" if i < c_ej else "#2ecc71")
-                    for i in range(2): self.canvas.itemconfig(self.ops_llenado[i], fill="#00bfff" if i < c_ll else "#2ecc71")
-                    for i in range(2): self.canvas.itemconfig(self.ops_sellado[i], fill="#00bfff" if i < c_sl else "#2ecc71")
+                    for i in range(CAPACIDAD_LAVADO_MANUAL): self.canvas.itemconfig(self.ops_manual[i], fill="#00bfff" if i < c_mn else "#2ecc71")
+                    for i in range(CAPACIDAD_LAVADO_TAMBOR): self.canvas.itemconfig(self.ops_maquina[i], fill="#00bfff" if i < c_mq else "#2ecc71")
+                    for i in range(CAPACIDAD_ENJUAGUE): self.canvas.itemconfig(self.ops_enjuague[i], fill="#00bfff" if i < c_ej else "#2ecc71")
+                    for i in range(CAPACIDAD_LLENADO): self.canvas.itemconfig(self.ops_llenado[i], fill="#00bfff" if i < c_ll else "#2ecc71")
+                    for i in range(CAPACIDAD_SELLADO): self.canvas.itemconfig(self.ops_sellado[i], fill="#00bfff" if i < c_sl else "#2ecc71")
                 elif tipo == "FIN":
                     self.simulacion_activa = False
                     self.btn_run.config(state="disabled", bg="#4f545c", text="▶ JORNADA COMPLETA")
